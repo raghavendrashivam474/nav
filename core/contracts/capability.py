@@ -1,18 +1,21 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
 from dataclasses import dataclass, field
+from typing import Any
+
 
 @dataclass(frozen=True)
 class Request:
     request_id: str
-    payload: Dict[str, Any] = field(default_factory=dict)
+    payload: dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass(frozen=True)
 class Response:
     request_id: str
-    data: Dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
     success: bool = True
     error: str | None = None
+
 
 class Capability(ABC):
     @property
