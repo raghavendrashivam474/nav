@@ -5,7 +5,7 @@
 NAV (Navigate · Augment · Venture) is a personal AI system designed to evolve across multiple capabilities and interfaces. For v0, NAV establishes three core capabilities:
 
 1. **Cognition** — Understand requests, reason, and produce responses.
-2. **Memory** — Retain and retrieve useful user context.
+2. **Memory** — Retain and retrieve useful user context across sessions (S6).
 3. **Research** — Discover, retrieve, and synthesize external information.
 
 The primary interface is voice-first, with text as a fallback. The AI layer uses a hybrid approach: local models, free/low-cost APIs, and paid frontier APIs.
@@ -18,7 +18,7 @@ The primary interface is voice-first, with text as a fallback. The AI layer uses
 
 NAV depends on abstract capability interfaces and contracts rather than specific vendors, models, databases, or frameworks. The implementation can change without requiring NAV Core to change.
 
-```text
+`	ext
                      NAV v0
                        │
                   ┌────▼────┐
@@ -36,115 +36,71 @@ NAV depends on abstract capability interfaces and contracts rather than specific
          ┌─────────────┼─────────────┐
          │             │             │
       AI Gateway      Data        Security
-         │
-    Model Router (S5)
-         │
+         │             │
+    Model Router    SQLite
+         │          Storage
    ┌─────┼─────┐
    │     │     │
  Local  Free  Paid
    AI   APIs   APIs
+
 Interfaces:
 Voice (Primary — S4)
 Text (Fallback)
 1. Core Boundary (core/)
 The nucleus of NAV. Intentionally kept small and isolated from vendor logic, databases, scrapers, and UI code.
 
-core/contracts/: Defines typed interfaces (Capability, Request, Response, NavContext, AIGateway, MemoryCapabilityInterface, ResearchCapabilityInterface).
+core/contracts/: Typed interfaces (Capability, Request, Response, NavContext, AIGateway, MemoryCapabilityInterface, ResearchCapabilityInterface).
 core/context/: Light context models (UserContext, SessionContext, ConversationContext, NavContext).
 core/capabilities/: Capability registry for dynamic discovery and registration without tight coupling.
 core/orchestration/: Lightweight routing mechanism delegating requests to registered capabilities.
 core/log.py: Standard-library logging foundation.
-Key rule: core/ must never import specific vendor packages (e.g., openai, anthropic, httpx, psycopg2).
+Key invariant: core/ must never import specific vendor packages (e.g. openai, httpx) or storage technologies (e.g. sqlite3).
 
 2. Capability Boundaries (capabilities/)
 Replaceable functional modules:
 
-capabilities/cognition/: Understanding, reasoning, and response generation. (S3: Real AI-powered via AIGateway)
-capabilities/memory/: Retention, retrieval, and lifecycle of user context. (Stub — S6)
-capabilities/research/: Information discovery, extraction, and synthesis. (Stub — S7)
-3. AI Layer (ai/) — Upgraded in S5
-The AI layer sits between capabilities and external model providers. It isolates the rest of the application from specific vendors and chooses the appropriate backend dynamically.
-
+capabilities/cognition/: Understanding, reasoning, and response generation (S3 AI Gateway + S6 Memory context injection).
+capabilities/memory/: Retention, retrieval, and lifecycle of user context (S6 SQLite-backed, fully replaceable).
+capabilities/research/: Information discovery, extraction, and synthesis (Stub — S7).
+3. Memory Layer (capabilities/memory/) — Implemented in S6
 text
 
-ai/
-├── errors.py              # NAV-level AI error hierarchy with routing errors
-├── gateway/
-│   └── default_gateway.py # AIGateway implementation with router integration
-├── providers/
-│   ├── base.py            # AIProvider structural protocol
-│   ├── ollama_provider.py # Local Ollama adapter (free, local)
-│   └── openai_provider.py # OpenAI API adapter (paid, remote)
-└── routing/
-    ├── __init__.py        # Public routing API exports
-    ├── router.py          # Policy-driven ModelRouter implementation
-    └── types.py           # Structured RoutingContext, ProviderMetadata, and Decisions
-Provider Abstraction
-text
+Cognition / Core
+       │
+       ▼ (MemoryCapabilityInterface)
+MemoryCapability
+       │
+       ▼
+MemoryService (persistence decisions, intent detection)
+       │
+       ▼
+MemoryRepository ABC
+       │
+       ▼
+SQLiteMemoryRepository (sqlite3 stdlib, data/nav_memory.db)
+Invariants:
+Core does not import sqlite3.
+Cognition does not execute SQL.
+Storage backend is swappable behind MemoryRepository.
+Deterministic retrieval without heavy vector database dependencies.
+All local state is isolated in data/nav_memory.db and gitignored.
+4. AI Layer (ai/) — Upgraded in S5
+Policy-driven Model Router dynamically selecting between local Ollama and remote OpenAI providers while enforcing hard privacy constraints.
 
-AIGateway (core contract)
-    │
-    ▼
-ModelRouter (routing policy engine)
-    │
-    ├── OllamaProvider   (local, free, standard-quality)
-    ├── OpenAIProvider   (remote, paid, high-quality)
-    └── FutureProvider   (any future backend satisfying AIProvider Protocol)
-Model Router Design (S5)
-NAV selects an AI provider dynamically based on policy, constraints, and soft preferences:
+5. Interface Boundaries (interfaces/) — Implemented in S4
+Voice capture, Whisper STT, pyttsx3 TTS, and CLI fallback.
 
-Constraints (Hard Rules): Things NAV must not violate.
-
-local_only: Removes remote providers to protect privacy.
-no_paid: Removes paid providers to respect cost constraints.
-If no provider satisfies all hard constraints, a structured RoutingError is raised immediately.
-Preferences (Soft Rules): Things NAV optimizes when possible.
-
-quality_requirement == "high": Favors high-quality providers (e.g., OpenAI).
-cost_preference == "low": Favors free/local models (e.g., Ollama).
-complexity == "simple": Favors lightweight, low-latency local models.
-privacy == "local_only": Guarantees that only local models are matched.
-Fallback Strategy:
-
-The router ranks remaining eligible providers and returns a primary selection plus a fallback chain.
-If the primary provider fails, the gateway automatically executes the request on the fallback provider.
-Crucially, fallback operations must re-enforce hard constraints. A private request that fails locally will never fall back to a cloud model, preventing data leaks.
-Error Translation
-Provider-specific errors are translated into NAV-level types before reaching Core:
-
-text
-
-Provider Error (e.g., HTTP 401, timeout)
-      ↓
-Provider Adapter
-      ↓
-NAV AI Error (ConfigurationError / ProviderError / RoutingError)
-      ↓
-Cognition
-      ↓
-Structured Response
-4. Interface Boundaries (interfaces/) — Implemented in S4
-interfaces/voice/: Audio capture, STT, and TTS output pipelines.
-interfaces/text/: Terminal, CLI, and standard text fallbacks.
-5. Security Boundary (security/) — Future
-First-class enforcement plane for authentication, authorization, secret storage, sandboxed tool execution, privacy controls, and audit trails.
-
-6. Data Boundary (data/) — Future
-Workspace for local persistent databases, embeddings, and vector stores (all excluded from Git via .gitignore).
-
-7. Status & Decisions
+6. Status & Decisions
 Implemented
 Sprint    Deliverable
-S1    Physical directory structure, stable vendor-agnostic contracts, CapabilityRegistry, Orchestrator, Cognition stub, test suite
-S2    pyproject.toml, Ruff, Mypy, logging foundation, .env.example, .gitignore
-S3    Real AI Cognition via AIGateway, Ollama provider (default), OpenAI provider (alternative), error hierarchy, 30 tests
-S4    Voice Interface supporting offline OS-based TTS (pyttsx3) and high-accuracy STT (faster-whisper), 29 tests
-S5    Policy-driven Model Router, structured routing requests/context, robust fallback systems protecting privacy, 20 new tests
-Intentionally Not Locked Yet
-Database or vector store technology (S6)
+S1    Architecture skeleton, contracts, CapabilityRegistry, Orchestrator, Cognition stub
+S2    pyproject.toml, Ruff, Mypy, logging, .gitignore
+S3    Real AI Cognition via AIGateway, Ollama & OpenAI providers
+S4    Voice Interface (pyttsx3 TTS + Whisper STT)
+S5    Policy-driven Model Router with privacy-preserving fallbacks
+S6    Persistent Memory (SQLite backend, MemoryRepository abstraction, Cognition integration)
+Future / Not Locked Yet
 Web scraping and research search providers (S7)
-UI frameworks or transport protocols
-8. S5 Architecture Validation
-Did the AI Gateway abstraction remain stable while implementing dynamic routing?
-
-Yes. The AIGateway protocol was not changed, and the calling capability (CognitionCapability) remains entirely unaware of which provider is executing its requests. The routing parameters are optionally passed inside AIRequest.options["routing"], preserving full backward compatibility.
+Vector database / semantic embeddings (Post-v0)
+Security & authorization plane
