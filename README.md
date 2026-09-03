@@ -74,12 +74,16 @@ ruff format --check .
 # Run type checking
 ```PowerShell
 mypy core/ ai/ capabilities/cognition/
+```
+```text
 Running NAV with AI
 Default: Local Ollama (Free, No API Key)
 ```
 Install Ollama and pull a model:
 ```PowerShell
 ollama pull mistral
+```
+```text
 Ensure Ollama is running (default: http://localhost:11434).
 ```
 Run the live integration test:
