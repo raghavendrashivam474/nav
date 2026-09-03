@@ -1,4 +1,4 @@
-"""NAV AI error hierarchy.
+﻿"""NAV AI error hierarchy.
 
 All AI-layer errors derive from AIError so that NAV Core never sees
 provider-specific exception types (e.g., OpenAIAuthenticationError).
@@ -17,3 +17,11 @@ class ConfigurationError(AIError):
 
 class ProviderError(AIError):
     """Error originating from the AI provider or network layer."""
+
+
+class RoutingError(AIError):
+    """Error during AI request routing (e.g., no compatible provider)."""
+
+
+class ProviderUnavailableError(RoutingError):
+    """The selected provider is not currently available."""
