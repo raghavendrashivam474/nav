@@ -1,4 +1,4 @@
-﻿"""NAV AI error hierarchy.
+"""NAV AI error hierarchy.
 
 All AI-layer errors derive from AIError so that NAV Core never sees
 provider-specific exception types (e.g., OpenAIAuthenticationError).

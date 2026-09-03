@@ -1,13 +1,16 @@
-﻿"""S6 cross-session demonstration script.
+"""S6 cross-session demonstration script.
 
 Run this twice:
   python demo_s6.py store   → Session A: stores a memory
   python demo_s6.py recall  → Session B: retrieves + forgets it
 """
+
 import sys
-from capabilities.memory.sqlite_repo import SQLiteMemoryRepository
+
 from capabilities.memory.service import MemoryService
+from capabilities.memory.sqlite_repo import SQLiteMemoryRepository
 from core.contracts.memory import MemoryQuery, MemoryRecord
+
 
 def main():
     repo = SQLiteMemoryRepository(db_path="data/nav_memory.db")
@@ -35,6 +38,7 @@ def main():
             print(f"[Session B] After forget: {len(again)} result(s)")
         else:
             print("[Session B] No memory found. Run 'store' first.")
+
 
 if __name__ == "__main__":
     main()

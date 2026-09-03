@@ -1,4 +1,4 @@
-﻿"""S5 Hybrid AI Layer — Model Router.
+"""S5 Hybrid AI Layer — Model Router.
 
 Provides policy-driven AI provider selection behind the existing AIGateway.
 """

@@ -97,8 +97,8 @@ class MemoryCapabilityInterface(ABC):
 class MemoryCapabilityInterface(ABC):
     def store(self, record: MemoryRecord) -> bool: ...
     def retrieve(self, query: MemoryQuery) -> list[MemoryRecord]: ...
-    def update(self, record: MemoryRecord) -> bool: ...   # NEW
-    def forget(self, key: str) -> bool: ...               # NEW
+    def update(self, record: MemoryRecord) -> bool: ...  # NEW
+    def forget(self, key: str) -> bool: ...  # NEW
 ```
 
 **Impact assessment:**

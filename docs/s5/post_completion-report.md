@@ -197,7 +197,7 @@ request = AIRequest(
             "cost": "low",
             "complexity": "simple",
         }
-    }
+    },
 )
 ```
 

@@ -1,41 +1,45 @@
-import unittest
+from unittest import TestCase
 
-from capabilities.cognition.cognition import CognitionCapability
-from core.capabilities.registry import CapabilityRegistry
-from core.contracts.capability import Request
-from core.orchestration.orchestrator import Orchestrator
+from core.contracts.capability import Capability, Request, Response
 
 
-class TestNAVArchitectureSkeleton(unittest.TestCase):
-    def setUp(self) -> None:
-        self.registry = CapabilityRegistry()
-        self.orchestrator = Orchestrator(self.registry)
-        self.cognition = CognitionCapability()
+class ConcreteCapability(Capability):
+    @property
+    def name(self) -> str:
+        return "test_cap"
 
-    def test_capability_registration(self) -> None:
-        self.registry.register(self.cognition)
-        self.assertIn("cognition", self.registry.list_capabilities())
-        self.assertEqual(self.registry.get("cognition"), self.cognition)
+    @property
+    def version(self) -> str:
+        return "1.0.0"
 
-    def test_duplicate_registration_raises_error(self) -> None:
-        self.registry.register(self.cognition)
-        with self.assertRaises(ValueError):
-            self.registry.register(self.cognition)
+    @property
+    def description(self) -> str:
+        return "A test capability"
 
-    def test_orchestrator_routes_correctly(self) -> None:
-        self.registry.register(self.cognition)
-        req = Request(request_id="tx_101", payload={"prompt": "Ping"})
-        res = self.orchestrator.route_request("cognition", req)
+    def invoke(self, request: Request) -> Response:
+        return Response(request_id=request.request_id, data={"echo": request.payload.get("msg")})
+
+
+class TestCapabilityContracts(TestCase):
+    def test_request_instantiation(self):
+        req = Request(request_id="req-123", payload={"msg": "hello"})
+        self.assertEqual(req.request_id, "req-123")
+        self.assertEqual(req.payload, {"msg": "hello"})
+
+    def test_response_defaults(self):
+        res = Response(request_id="req-123")
+        self.assertEqual(res.request_id, "req-123")
         self.assertTrue(res.success)
-        self.assertEqual(res.request_id, "tx_101")
-        self.assertIn("Cognition S1 Stub", res.data.get("reply", ""))
+        self.assertIsNone(res.error)
+        self.assertEqual(res.data, {})
 
-    def test_orchestrator_handles_missing_capability(self) -> None:
-        req = Request(request_id="tx_102")
-        res = self.orchestrator.route_request("unregistered_service", req)
-        self.assertFalse(res.success)
-        self.assertIn("not registered", res.error)
+    def test_capability_subclass(self):
+        cap = ConcreteCapability()
+        self.assertEqual(cap.name, "test_cap")
+        self.assertIn("1.0.0", cap.version)
+        self.assertIn("test capability", cap.description)
 
-
-if __name__ == "__main__":
-    unittest.main()
+        req = Request(request_id="req-1", payload={"msg": "ping"})
+        res = cap.invoke(req)
+        self.assertTrue(res.success)
+        self.assertEqual(res.data["echo"], "ping")

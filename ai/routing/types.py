@@ -1,4 +1,4 @@
-﻿"""Routing data structures for the S5 Hybrid AI Layer.
+"""Routing data structures for the S5 Hybrid AI Layer.
 
 These types let the ModelRouter reason about providers and requests
 without coupling to any specific implementation.

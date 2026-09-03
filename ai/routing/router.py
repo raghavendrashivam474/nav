@@ -1,4 +1,4 @@
-﻿"""Policy-driven model router for the S5 Hybrid AI Layer.
+"""Policy-driven model router for the S5 Hybrid AI Layer.
 
 The router selects an AI provider by:
   1. Removing providers that violate hard constraints.
@@ -66,9 +66,7 @@ class ModelRouter:
     # Constraint filtering (hard rules — violations are forbidden)
     # ------------------------------------------------------------------
 
-    def _apply_constraints(
-        self, ctx: RoutingContext
-    ) -> list[tuple[str, ProviderMetadata]]:
+    def _apply_constraints(self, ctx: RoutingContext) -> list[tuple[str, ProviderMetadata]]:
         """Remove providers that violate any hard constraint."""
         candidates: list[tuple[str, ProviderMetadata]] = []
 

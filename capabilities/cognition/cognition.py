@@ -1,4 +1,4 @@
-﻿"""Cognition capability â€” NAV's primary reasoning engine.
+"""Cognition capability â€” NAV's primary reasoning engine.
 
 S1: Stub that echoed the prompt.
 S3: Real AI-powered cognition via the AIGateway contract.

@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 # Test helpers
 # ------------------------------------------------------------------
 
+
 def _make_registry(*names: str) -> dict[str, ProviderMetadata]:
     """Build a test provider registry from shorthand names."""
     presets: dict[str, ProviderMetadata] = {
@@ -70,6 +71,7 @@ def _make_registry(*names: str) -> dict[str, ProviderMetadata]:
 # ------------------------------------------------------------------
 # Routing decision tests
 # ------------------------------------------------------------------
+
 
 class TestRoutingBasic(unittest.TestCase):
     """Basic routing decisions with default context."""
@@ -208,6 +210,7 @@ class TestRoutingComplexity(unittest.TestCase):
 # Gateway integration tests (using fake providers)
 # ------------------------------------------------------------------
 
+
 class FakeProvider:
     """Minimal provider for gateway integration tests."""
 
@@ -220,6 +223,7 @@ class FakeProvider:
         self.call_count += 1
         if self._should_fail:
             from ai.errors import ProviderError
+
             raise ProviderError(f"{self._name} simulated failure")
         return AIResponse(
             content=f"Response from {self._name}",
@@ -230,9 +234,7 @@ class FakeProvider:
 class TestGatewayRoutingIntegration(unittest.TestCase):
     """Test the full gateway -> router -> provider path with fakes."""
 
-    def _make_gateway(
-        self, providers: dict[str, FakeProvider]
-    ) -> DefaultAIGateway:
+    def _make_gateway(self, providers: dict[str, FakeProvider]) -> DefaultAIGateway:
         """Build a DefaultAIGateway with injected fake providers."""
         from ai.gateway.default_gateway import DefaultAIGateway
 
@@ -277,6 +279,7 @@ class TestGatewayRoutingIntegration(unittest.TestCase):
             options={"routing": {"privacy": "local_only"}},
         )
         from ai.errors import ProviderError
+
         with self.assertRaises(ProviderError):
             gw.generate(req)
         # Remote provider must NOT have been called
@@ -297,6 +300,7 @@ class TestGatewayRoutingIntegration(unittest.TestCase):
 # ------------------------------------------------------------------
 # Backward compatibility
 # ------------------------------------------------------------------
+
 
 class TestBackwardCompatibility(unittest.TestCase):
     """Ensure S3/S4 behaviour is preserved."""

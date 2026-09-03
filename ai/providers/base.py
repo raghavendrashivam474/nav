@@ -1,4 +1,4 @@
-﻿"""Structural protocol for AI providers.
+"""Structural protocol for AI providers.
 
 Both OllamaProvider and OpenAIProvider satisfy this protocol without
 modification because they already implement complete(AIRequest) -> AIResponse.

@@ -1,4 +1,4 @@
-﻿"""Default AIGateway implementation with S5 Model Router integration.
+"""Default AIGateway implementation with S5 Model Router integration.
 
 Delegates to AI providers selected by the policy-driven ModelRouter.
 NAV Core and capabilities remain fully decoupled from the active provider.
@@ -62,13 +62,9 @@ class DefaultAIGateway(AIGateway):
         preferred = os.environ.get("NAV_AI_PROVIDER", "ollama").lower()
 
         # --- Ollama (local, free) ---
-        ollama_url = os.environ.get(
-            "NAV_OLLAMA_URL", "http://localhost:11434/api/chat"
-        )
+        ollama_url = os.environ.get("NAV_OLLAMA_URL", "http://localhost:11434/api/chat")
         ollama_model = os.environ.get("NAV_OLLAMA_MODEL", "mistral")
-        self._providers["ollama"] = OllamaProvider(
-            base_url=ollama_url, model=ollama_model
-        )
+        self._providers["ollama"] = OllamaProvider(base_url=ollama_url, model=ollama_model)
         self._metadata["ollama"] = ProviderMetadata(
             name="ollama",
             locality=Locality.LOCAL,
@@ -81,9 +77,7 @@ class DefaultAIGateway(AIGateway):
         api_key = os.environ.get("NAV_OPENAI_API_KEY", "")
         if api_key and api_key.strip():
             openai_model = os.environ.get("NAV_OPENAI_MODEL", "gpt-4o-mini")
-            self._providers["openai"] = OpenAIProvider(
-                api_key=api_key, model=openai_model
-            )
+            self._providers["openai"] = OpenAIProvider(api_key=api_key, model=openai_model)
             self._metadata["openai"] = ProviderMetadata(
                 name="openai",
                 locality=Locality.REMOTE,
@@ -141,9 +135,7 @@ class DefaultAIGateway(AIGateway):
 
             # Re-enforce hard constraints on fallback candidates
             if not self._provider_satisfies_constraints(provider_name, context):
-                logger.warning(
-                    "Skipping fallback %s: violates constraints", provider_name
-                )
+                logger.warning("Skipping fallback %s: violates constraints", provider_name)
                 continue
 
             try:
@@ -181,9 +173,7 @@ class DefaultAIGateway(AIGateway):
             preferences=tuple(hints.get("preferences", ())),
         )
 
-    def _provider_satisfies_constraints(
-        self, provider_name: str, context: RoutingContext
-    ) -> bool:
+    def _provider_satisfies_constraints(self, provider_name: str, context: RoutingContext) -> bool:
         """Check whether a fallback candidate respects hard constraints."""
         meta = self._metadata.get(provider_name)
         if meta is None:
@@ -200,10 +190,6 @@ class DefaultAIGateway(AIGateway):
         """Backward-compatible fallback when the router has no candidates."""
         preferred = os.environ.get("NAV_AI_PROVIDER", "ollama").lower()
         if preferred in self._providers:
-            return RoutingDecision(
-                provider_name=preferred, reason="legacy-fallback"
-            )
+            return RoutingDecision(provider_name=preferred, reason="legacy-fallback")
         first = next(iter(self._providers))
-        return RoutingDecision(
-            provider_name=first, reason="legacy-fallback-first-available"
-        )
+        return RoutingDecision(provider_name=first, reason="legacy-fallback-first-available")
