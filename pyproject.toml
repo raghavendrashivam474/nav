@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nav"
 version = "0.1.0"
-description = "NAV — Navigate · Augment · Venture"
+description = "NAV ? Navigate ? Augment ? Venture"
 requires-python = ">=3.10"
 dependencies = ["httpx>=0.27.0"]
 
@@ -13,6 +13,12 @@ dependencies = ["httpx>=0.27.0"]
 dev = [
     "ruff>=0.4.0",
     "mypy>=1.10.0",
+]
+voice = [
+    "sounddevice>=0.4.6",
+    "numpy>=1.24",
+    "faster-whisper>=1.0.0",
+    "pyttsx3>=2.90",
 ]
 
 [tool.setuptools.packages.find]
@@ -32,3 +38,16 @@ warn_return_any = true
 warn_unused_configs = true
 check_untyped_defs = true
 disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = [
+    "sounddevice.*",
+    "sounddevice",
+    "numpy.*",
+    "numpy",
+    "faster_whisper.*",
+    "faster_whisper",
+    "pyttsx3.*",
+    "pyttsx3",
+]
+ignore_missing_imports = true
