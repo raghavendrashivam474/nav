@@ -1,8 +1,8 @@
-﻿# NAV v0 — Sprint 3 Completion Report
+# NAV v0 — Sprint 3 Completion Report
 
 **To:** Senior Developer / Tech Lead
 **From:** Junior Developer
-**Date:** 2025
+**Date:** September 4, 2025
 **Project:** NAV (Navigate · Augment · Venture) v0
 **Sprint:** S3 — First Real AI Capability / Cognition
 **Status:** ✅ Complete
@@ -11,13 +11,18 @@
 
 ## 1. Executive Summary
 
-Sprint 3 is complete. NAV now has its first real AI-powered capability. A user prompt flows through the full NAV pipeline — Orchestrator → Cognition → AIGateway → Provider → Model — and returns a genuine AI-generated response.
+Sprint 3 is complete. NAV now has its first real AI-powered capability.
+A user prompt flows through the full NAV pipeline — Orchestrator →
+Cognition → AIGateway → Provider → Model — and returns a genuine
+AI-generated response.
 
 Two providers are implemented:
+
 - **Ollama** (default) — Local Mistral model, zero cost, no API key required.
 - **OpenAI** (alternative) — Paid frontier API, activated via environment variable.
 
-The S1/S2 Core abstraction **survived contact with two real AI providers** without any modification. No Core contracts were changed.
+The S1/S2 Core abstraction **survived contact with two real AI providers**
+without any modification. No Core contracts were changed.
 
 ---
 
@@ -31,6 +36,7 @@ The S1/S2 Core abstraction **survived contact with two real AI providers** witho
 | **OpenAI** | `openai_provider.py` | Yes | `gpt-4o-mini` |
 
 Both providers:
+
 - Translate NAV `AIRequest`/`AIResponse` to/from their respective HTTP APIs using `httpx`.
 - Use raw HTTP (no vendor SDKs), proving the abstraction genuinely.
 - Implement full error translation to NAV-level error types.
@@ -106,6 +112,7 @@ One runtime dependency added. No vendor SDKs.
 > **Did the S1/S2 Core abstraction survive contact with real AI providers?**
 
 **Yes.** Zero changes to any file under `core/`:
+
 - `core/contracts/ai.py` — Untouched
 - `core/contracts/capability.py` — Untouched
 - `core/orchestration/orchestrator.py` — Untouched
@@ -113,12 +120,18 @@ One runtime dependency added. No vendor SDKs.
 - `core/context/` — Untouched
 - All existing tests — Untouched
 
-The `AIGateway.generate(AIRequest) -> AIResponse` contract mapped cleanly to both Ollama and OpenAI APIs. The `AIMessage` role/content structure is identical to both providers' message formats — zero translation friction.
+The `AIGateway.generate(AIRequest) -> AIResponse` contract mapped cleanly
+to both Ollama and OpenAI APIs. The `AIMessage` role/content structure is
+identical to both providers' message formats — zero translation friction.
 
 **Observations:**
-- `AIRequest.options` dict is currently unused but will be valuable for provider-specific parameters (`top_p`, `stop` sequences) in later sprints.
-- `AIResponse.raw_response` is intentionally not populated to avoid leaking provider structures.
-- Both providers were implemented in under 100 lines each, confirming the contract is well-sized.
+
+- `AIRequest.options` dict is currently unused but will be valuable for
+  provider-specific parameters (`top_p`, `stop` sequences) in later sprints.
+- `AIResponse.raw_response` is intentionally not populated to avoid leaking
+  provider structures.
+- Both providers were implemented in under 100 lines each, confirming the
+  contract is well-sized.
 
 ---
 
@@ -127,11 +140,13 @@ The `AIGateway.generate(AIRequest) -> AIResponse` contract mapped cleanly to bot
 > "We're dropping the current provider and using a different one."
 
 **What changes:**
+
 1. Create `ai/providers/<new>_provider.py`.
 2. Add option to `DefaultAIGateway`.
 3. Update `.env`.
 
 **What does NOT change:**
+
 - Core, Orchestrator, Cognition, Context, Registry, all contracts, all existing tests.
 
 **Verdict:** ✅ Architecture is sound. Two providers already proven.
@@ -146,27 +161,34 @@ developed by Microsoft in the 1980s, primarily used for creating desktop
 applications. Despite not being as popular as it once was, it still has
 a dedicated community and is used in certain industries for specific purposes.
 ```
-```text
-NAV successfully sent a prompt through the full pipeline to a local Mistral model and received a real AI-generated response. (The model hallucinated about NAV being a programming language — which is expected for a small local model and will improve with better prompting and model selection in S5.)
-```
+
+NAV successfully sent a prompt through the full pipeline to a local Mistral
+model and received a real AI-generated response. (The model hallucinated
+about NAV being a programming language — which is expected for a small local
+model and will improve with better prompting and model selection in S5.)
+
+---
+
 ## 8. What Was Intentionally Deferred
-```text
+
 Per the S3 brief boundaries:
 
-❌ No voice / STT / TTS (S4)
-❌ No memory / vector DB / embeddings (S6)
-❌ No research / web search (S7)
-❌ No model router / complexity-based routing (S5)
-❌ No agents / autonomous loops
-❌ No UI beyond CLI
-❌ No CI/CD pipeline
-```
+- ❌ No voice / STT / TTS (S4)
+- ❌ No memory / vector DB / embeddings (S6)
+- ❌ No research / web search (S7)
+- ❌ No model router / complexity-based routing (S5)
+- ❌ No agents / autonomous loops
+- ❌ No UI beyond CLI
+- ❌ No CI/CD pipeline
+
+---
+
 ## 9. S4 Readiness
-```text
+
 Sprint 4 can proceed with:
 
-A proven AI pipeline from user input to model response.
-Two working providers demonstrating the replaceability of the abstraction.
-Real error handling and logging throughout the AI path.
-A 30-test suite that validates AI logic without API cost.
-A local-first default that requires zero configuration to run.
+- A proven AI pipeline from user input to model response.
+- Two working providers demonstrating the replaceability of the abstraction.
+- Real error handling and logging throughout the AI path.
+- A 30-test suite that validates AI logic without API cost.
+- A local-first default that requires zero configuration to run.
