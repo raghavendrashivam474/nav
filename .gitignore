@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Data & secrets
+data/*
+!data/.gitkeep
+security/*
+!security/.gitkeep
+!security/__init__.py
+*.db
+*.sqlite
+*.key
+*.pem
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
