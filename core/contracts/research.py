@@ -223,3 +223,23 @@ def utcnow() -> datetime:
     research components use one definition."""
 
     return datetime.now(timezone.utc)
+
+
+# ---------------------------------------------------------------------------
+# S10: Continuity
+# ---------------------------------------------------------------------------
+
+
+class ContinuationIntent(str, Enum):
+    """Intent classification for multi-turn research follow-ups.
+
+    NEW:        Unrelated query — start a fresh investigation.
+    DEEPEN:     "go deeper", "more details" — expand current thread.
+    FOCUS:      "focus on X" — narrow scope within current thread.
+    PROVENANCE: "show sources" — return existing provenance, no re-search.
+    """
+
+    NEW = "new"
+    DEEPEN = "deepen"
+    FOCUS = "focus"
+    PROVENANCE = "provenance"
