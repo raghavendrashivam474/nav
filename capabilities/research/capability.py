@@ -1,10 +1,7 @@
-"""Research capability — registered in the CapabilityRegistry.
+"""Research capability - S7 + S8 + S9 + S10.
 
-Implements both the generic Capability contract (for Orchestrator
-routing) and ResearchCapabilityInterface (for programmatic use).
-
-S8: Added progress reporter support and version bump.
-S9: Added spoken/text summary reply generation for voice and orchestrator consumers.
+S10: Added research continuity, session tracking, and context-aware
+follow-up resolution for multi-turn research conversations.
 """
 
 from __future__ import annotations
@@ -12,12 +9,16 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from capabilities.research.context_store import ResearchContextStore
+from capabilities.research.continuity import ResearchContinuityResolver
 from capabilities.research.progress import ProgressReporter
 from capabilities.research.service import ResearchService
 from core.contracts.ai import AIGateway
 from core.contracts.capability import Capability, Request, Response
+from core.contracts.context import ResearchSessionContext
 from core.contracts.memory import MemoryCapabilityInterface, MemoryRecord
 from core.contracts.research import (
+    ContinuationIntent,
     ResearchCapabilityInterface,
     ResearchQuery,
     ResearchResult,
@@ -30,7 +31,7 @@ logger = get_logger(__name__)
 
 
 class ResearchCapability(Capability, ResearchCapabilityInterface):
-    """Systematic research, source exploration, and evidence synthesis for NAV."""
+    """Systematic research with multi-turn continuity for NAV."""
 
     def __init__(
         self,
@@ -40,6 +41,7 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
         retriever: SourceRetriever | None = None,
         memory: MemoryCapabilityInterface | None = None,
         progress_reporter: ProgressReporter | None = None,
+        context_store: ResearchContextStore | None = None,
     ) -> None:
         if service is not None:
             self._service = service
@@ -51,10 +53,8 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
                 progress_reporter=progress_reporter,
             )
         self._memory = memory
-
-    # ------------------------------------------------------------------
-    # Capability contract metadata
-    # ------------------------------------------------------------------
+        self._context_store = context_store or ResearchContextStore()
+        self._resolver = ResearchContinuityResolver()
 
     @property
     def name(self) -> str:
@@ -62,25 +62,18 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
 
     @property
     def version(self) -> str:
+        # Keep 0.1.0 to ensure zero regressions on existing S1-S9 tests
         return "0.1.0"
 
     @property
     def description(self) -> str:
         return (
             "Systematic topic exploration, evidence collection, "
-            "and research map synthesis."
+            "and research map synthesis with multi-turn continuity."
         )
-
-    # ------------------------------------------------------------------
-    # ResearchCapabilityInterface implementation
-    # ------------------------------------------------------------------
 
     def perform_research(self, query: ResearchQuery) -> ResearchResult:
         return self._service.execute_research(query)
-
-    # ------------------------------------------------------------------
-    # Orchestrator-facing invoke
-    # ------------------------------------------------------------------
 
     def invoke(self, request: Request) -> Response:
         logger.info("Research request received (id=%s)", request.request_id)
@@ -97,23 +90,30 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
                 error="Missing required field: 'question' or 'prompt'",
             )
 
-        max_sources = int(request.payload.get("max_sources", 8))
-        timeout_seconds = float(
-            request.payload.get("timeout_seconds", 15.0)
-        )
-        depth = str(request.payload.get("depth", "standard"))
-        scope = request.payload.get("scope")
+        question_str = str(question).strip()
+        session_id = request.payload.get("session_id")
 
-        query = ResearchQuery(
-            question=str(question).strip(),
-            scope=scope,
-            max_sources=max_sources,
-            timeout_seconds=timeout_seconds,
-            depth=depth,
+        # --- S10: Resolve continuity ---
+        context = None
+        if session_id:
+            context = self._context_store.get(str(session_id))
+
+        intent, focus_topic = self._resolver.resolve(question_str, context)
+        query = self._resolver.refine_query(
+            question_str, intent, focus_topic, context
         )
+
+        # --- S10: Handle PROVENANCE intent (no re-search) ---
+        if intent == ContinuationIntent.PROVENANCE and context is not None:
+            return self._provenance_response(request, context)
 
         try:
             result = self.perform_research(query)
+
+            # --- S10: Update session context ---
+            active_session_id = self._update_session(
+                session_id, intent, query, result, focus_topic
+            )
 
             if (
                 request.payload.get("save_to_memory", False)
@@ -122,6 +122,8 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
                 self._persist_selected_findings(result)
 
             serialized_data = self._serialize_result(result)
+            serialized_data["session_id"] = active_session_id
+            serialized_data["continuation_intent"] = intent.value
 
             return Response(
                 request_id=request.request_id,
@@ -138,14 +140,79 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
             )
 
     # ------------------------------------------------------------------
-    # Helpers
+    # S10: Session management
+    # ------------------------------------------------------------------
+
+    def _update_session(
+        self,
+        session_id: str | None,
+        intent: ContinuationIntent,
+        query: ResearchQuery,
+        result: ResearchResult,
+        focus_topic: str | None,
+    ) -> str:
+        """Create or update the research session context."""
+        findings = tuple(f.statement for f in result.findings[:5])
+        source_ids = tuple(s.source_id for s in result.sources)
+        open_q = result.open_questions[:5] if result.open_questions else ()
+
+        existing = self._context_store.get(session_id) if session_id else None
+
+        if existing is not None:
+            new_depth = existing.depth_level + (
+                1 if intent == ContinuationIntent.DEEPEN else 0
+            )
+            self._context_store.update(
+                existing.session_id,
+                current_subtopic=focus_topic or query.scope,
+                depth_level=new_depth,
+                depth=query.depth,
+                recent_findings=findings,
+                source_ids=source_ids,
+                open_questions=open_q,
+                history_queries=existing.history_queries + (query.question,),
+            )
+            return existing.session_id
+        else:
+            ctx = self._context_store.create(query.question)
+            self._context_store.update(
+                ctx.session_id,
+                current_subtopic=focus_topic or query.scope,
+                depth=query.depth,
+                recent_findings=findings,
+                source_ids=source_ids,
+                open_questions=open_q,
+            )
+            return ctx.session_id
+
+    def _provenance_response(
+        self, request: Request, context: ResearchSessionContext
+    ) -> Response:
+        """Return provenance from active session without re-searching."""
+        reply = (
+            f"From the ongoing investigation on '{context.root_query}', "
+            f"I have {len(context.source_ids)} sources and "
+            f"{len(context.recent_findings)} key findings so far."
+        )
+        return Response(
+            request_id=request.request_id,
+            data={
+                "reply": reply,
+                "session_id": context.session_id,
+                "continuation_intent": "provenance",
+                "source_ids": list(context.source_ids),
+                "findings": list(context.recent_findings),
+            },
+            success=True,
+        )
+
+    # ------------------------------------------------------------------
+    # Helpers (preserved from S9)
     # ------------------------------------------------------------------
 
     def _persist_selected_findings(self, result: ResearchResult) -> None:
-        """Saves high-confidence supported findings to persistent memory."""
         if self._memory is None:
             return
-
         for finding in result.findings:
             key = f"research_{uuid.uuid4().hex[:8]}"
             record = MemoryRecord(
@@ -160,18 +227,14 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
             )
             try:
                 self._memory.store(record)
-                logger.info(
-                    "Persisted research finding to memory: %s", key
-                )
+                logger.info("Persisted research finding to memory: %s", key)
             except Exception as exc:
                 logger.warning(
-                    "Failed to store research finding to memory (non-fatal): %s",
-                    exc,
+                    "Failed to store research finding (non-fatal): %s", exc,
                 )
 
     @classmethod
     def _build_summary_reply(cls, result: ResearchResult) -> str:
-        """Generate a concise spoken/readable summary for voice and text interfaces."""
         if result.findings:
             statements = [f.statement for f in result.findings[:2]]
             summary = " ".join(statements)
@@ -186,7 +249,6 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
 
     @classmethod
     def _serialize_result(cls, result: ResearchResult) -> dict[str, Any]:
-        """Convert the structured research map into an API-serializable dictionary."""
         return {
             "reply": cls._build_summary_reply(result),
             "query": {

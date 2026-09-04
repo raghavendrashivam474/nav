@@ -1,25 +1,15 @@
-﻿"""Research Service — S7 + S8 + S9.
+"""Research Service - S7 + S8 + S9 + S10.
 
-Orchestrates the research lifecycle:
-  1. Discovery of source candidates
-  2. Deterministic registration and deduplication via ProvenanceTracker
-  3. Bounded concurrent retrieval with partial failure isolation (S8)
-  4. AI-assisted evidence extraction
-  5. AI-assisted synthesis with uncertainty and contradiction mapping
-
-S8 additions:
-  - Concurrent retrieval via ThreadPoolExecutor (bounded)
-  - Structured progress reporting (decoupled from interfaces)
-  - All S7 limits, timeouts, and failure semantics preserved
-
-S9 additions:
-  - Environment-based default SearchProvider selection (NAV_SEARCH_PROVIDER)
+S10 additions:
+  - Optional search result caching (discovery-level, not synthesis-level)
+  - Cache preserves provenance integrity
 """
 
 from __future__ import annotations
 
 import os
 
+from capabilities.research.cache import ResearchCache
 from capabilities.research.concurrency import (
     DEFAULT_MAX_WORKERS,
     RetrievalOutcome,
@@ -61,12 +51,14 @@ class ResearchService:
         retriever: SourceRetriever | None = None,
         progress_reporter: ProgressReporter | None = None,
         max_concurrent_retrievals: int = DEFAULT_MAX_WORKERS,
+        cache: ResearchCache | None = None,
     ) -> None:
         self.search_provider = search_provider or self._default_search_provider()
         self.retriever = retriever or MockRetriever()
         self.gateway = gateway
         self.progress_reporter = progress_reporter or NullProgressReporter()
         self.max_concurrent_retrievals = max(1, max_concurrent_retrievals)
+        self.cache = cache
 
         self.extractor: EvidenceExtractor | None = None
         self.synthesizer: EvidenceSynthesizer | None = None
@@ -77,17 +69,21 @@ class ResearchService:
 
     @staticmethod
     def _default_search_provider() -> SearchProvider:
-        """Select search provider from NAV_SEARCH_PROVIDER env var.
-
-        Defaults to 'mock' for backward compatibility.
-        Set NAV_SEARCH_PROVIDER=duckduckgo for live search.
-        """
-        provider_name = os.environ.get("NAV_SEARCH_PROVIDER", "mock").lower().strip()
+        provider_name = os.environ.get(
+            "NAV_SEARCH_PROVIDER", "mock"
+        ).lower().strip()
         if provider_name == "duckduckgo":
-            from capabilities.research.providers.duckduckgo import DuckDuckGoSearchProvider
-
+            from capabilities.research.providers.duckduckgo import (
+                DuckDuckGoSearchProvider,
+            )
             logger.info("Using live search provider: duckduckgo")
             return DuckDuckGoSearchProvider()
+        if provider_name == "brave":
+            from capabilities.research.providers.brave import (
+                BraveSearchProvider,
+            )
+            logger.info("Using live search provider: brave")
+            return BraveSearchProvider()
         if provider_name != "mock":
             logger.warning(
                 "Unknown NAV_SEARCH_PROVIDER='%s', falling back to mock",
@@ -103,7 +99,6 @@ class ResearchService:
         total: int = 0,
         **metadata: object,
     ) -> None:
-        """Emit a progress event to the attached reporter."""
         try:
             self.progress_reporter.report(
                 ProgressEvent(
@@ -118,39 +113,52 @@ class ResearchService:
             logger.warning("Progress reporting failed (non-fatal): %s", exc)
 
     def execute_research(self, query: ResearchQuery) -> ResearchResult:
-        """Executes the full end-to-end bounded research workflow."""
         logger.info("Starting research on query: '%s'", query.question)
-        self._emit(ProgressStage.STARTED, f"Research started: {query.question}")
+        self._emit(
+            ProgressStage.STARTED, f"Research started: {query.question}"
+        )
         tracker = ProvenanceTracker(query)
 
-        # -------------------------------------------------------------
-        # 1. Source Discovery
-        # -------------------------------------------------------------
-        try:
-            candidates = self.search_provider.discover(query)
-            logger.info("Discovered %d candidate source(s)", len(candidates))
-        except Exception as exc:
-            logger.error("Search discovery failed: %s", exc)
-            candidates = []
+        # 1. Source Discovery (with optional cache)
+        candidates = None
+        cache_hit = False
+
+        if self.cache is not None and query.max_sources > 0:
+            candidates = self.cache.get(query)
+            if candidates is not None:
+                cache_hit = True
+                logger.info(
+                    "Cache hit for discovery: %d candidates", len(candidates)
+                )
+
+        if candidates is None:
+            try:
+                candidates = self.search_provider.discover(query)
+                logger.info(
+                    "Discovered %d candidate source(s)", len(candidates)
+                )
+            except Exception as exc:
+                logger.error("Search discovery failed: %s", exc)
+                candidates = []
+
+            if self.cache is not None and candidates:
+                self.cache.put(query, candidates)
 
         self._emit(
             ProgressStage.DISCOVERY,
-            f"Discovered {len(candidates)} source(s)",
+            f"Discovered {len(candidates)} source(s)"
+            + (" (cached)" if cache_hit else ""),
             completed=len(candidates),
             total=len(candidates),
         )
 
-        # -------------------------------------------------------------
         # 2. Registration & Deduplication
-        # -------------------------------------------------------------
         for candidate in candidates[: query.max_sources]:
             tracker.register_candidate(candidate)
 
         registered_sources = tracker.get_sources()
 
-        # -------------------------------------------------------------
         # 3. Bounded Concurrent Retrieval (S8)
-        # -------------------------------------------------------------
         self._emit(
             ProgressStage.RETRIEVAL,
             f"Retrieving {len(registered_sources)} source(s)",
@@ -178,7 +186,6 @@ class ResearchService:
             on_source_complete=_on_source_complete,
         )
 
-        # Update tracker sequentially (thread-safe) from outcomes
         retrieved_contents: list[RetrievedContent] = []
         for outcome in outcomes:
             if outcome.success and outcome.content is not None:
@@ -193,9 +200,7 @@ class ResearchService:
                     error=outcome.error,
                 )
 
-        # -------------------------------------------------------------
         # 4. AI-assisted Evidence Extraction
-        # -------------------------------------------------------------
         self._emit(
             ProgressStage.EXTRACTION,
             f"Extracting evidence from {len(retrieved_contents)} source(s)",
@@ -222,9 +227,7 @@ class ResearchService:
 
         logger.info("Total extracted evidence points: %d", len(all_evidence))
 
-        # -------------------------------------------------------------
         # 5. AI-assisted Synthesis
-        # -------------------------------------------------------------
         self._emit(ProgressStage.SYNTHESIS, "Synthesizing findings")
 
         final_sources = tracker.get_sources()
