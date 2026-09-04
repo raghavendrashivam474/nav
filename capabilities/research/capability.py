@@ -62,7 +62,6 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
 
     @property
     def version(self) -> str:
-        # Keep 0.1.0 to ensure zero regressions on existing S1-S9 tests
         return "0.1.0"
 
     @property
@@ -156,7 +155,10 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
         source_ids = tuple(s.source_id for s in result.sources)
         open_q = result.open_questions[:5] if result.open_questions else ()
 
-        existing = self._context_store.get(session_id) if session_id else None
+        # FIX: If the user query is NEW, we MUST ignore the previous session and start a fresh one!
+        existing = None
+        if session_id and intent != ContinuationIntent.NEW:
+            existing = self._context_store.get(session_id)
 
         if existing is not None:
             new_depth = existing.depth_level + (

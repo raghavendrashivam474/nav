@@ -98,6 +98,38 @@ class TestScenarioDProvenance:
         assert resp2.data["continuation_intent"] == "provenance"
 
 
+class TestScenarioETopicSwitching:
+    def test_topic_switch_creates_fresh_session(self) -> None:
+        cap = _make_capability()
+
+        # Turn 1: Solid-state batteries
+        req1 = Request(
+            request_id="t1",
+            payload={"question": "Research solid-state batteries"},
+        )
+        resp1 = cap.invoke(req1)
+        session_id_1 = resp1.data["session_id"]
+
+        # Turn 2: Quantum computing (unrelated query, passed with same session_id)
+        req2 = Request(
+            request_id="t2",
+            payload={
+                "question": "Research quantum computing",
+                "session_id": session_id_1,
+            },
+        )
+        resp2 = cap.invoke(req2)
+        session_id_2 = resp2.data["session_id"]
+
+        # Session IDs must be different, and the second session must have quantum computing as root
+        assert session_id_1 != session_id_2
+
+        ctx2 = cap._context_store.get(session_id_2)
+        assert ctx2 is not None
+        assert "quantum computing" in ctx2.root_query.lower()
+        assert "solid-state" not in ctx2.root_query.lower()
+
+
 class TestScenarioGMemoryIsolation:
     def test_research_does_not_pollute_memory(self) -> None:
         cap = _make_capability()
