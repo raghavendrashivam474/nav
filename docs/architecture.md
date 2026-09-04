@@ -1,51 +1,72 @@
-﻿# NAV Architecture Overview
+# NAV Architecture Reference (v0.9)
 
-NAV (Navigate · Augment · Venture) is structured as a capability-oriented, offline-first AI system.
+NAV (*Navigate · Augment · Venture*) is a modular, local-first personal intelligence system built around strict architectural boundaries, stable contracts, and replaceable implementations.
 
-## Core Architectural Layers
+---
 
-```text
-                         NAV
-                          │
-                     Orchestrator
-                          │
-             ┌────────────┼────────────┐
-             ↓            ↓            ↓
-         Cognition      Memory      Research
-             │                         │
-             │                  ResearchService
-             │                         │
-             │                 ┌───────┴────────┐
-             │                 ↓                ↓
-             │            Discovery        Retrieval
-             │                                  │
-             │                          bounded concurrency
-             │                                  │
-             │                                  ↓
-             │                              Evidence
-             │                                  │
-             │                              Synthesis
-             │                                  │
-             └────────────┬─────────────────────┘
-                          ↓
-                     AI Gateway
-                          ↓
-                    Model Router
-                          ↓
-                      Providers
-1. Orchestration Layer (core/orchestration/)
-The Orchestrator receives standardized Request payloads and routes them to registered capabilities via CapabilityRegistry. Core remains completely decoupled from capability-internal implementations.
+## Core System Topology
 
-2. Capabilities Layer (capabilities/)
-Cognition: Lightweight text-to-text reasoning and conversational responses.
-Memory: Persistent structured recall using SQLite repository and key-value semantics.
-Research: Deep, multi-step investigation combining source candidate discovery, bounded parallel retrieval, evidence extraction, and contradiction/uncertainty synthesis.
-3. S8 Research Subsystem
-Bounded Concurrency (concurrency.py): Independent source fetching runs via a managed ThreadPoolExecutor bounded by max_concurrent_retrievals (default: 4). Partial failures in one source do not block or cancel other sources.
-Progress Reporting (progress.py): Decoupled ProgressEvent protocol emitting lifecycle milestones (STARTED, DISCOVERY, RETRIEVAL, EXTRACTION, SYNTHESIS, COMPLETED) to attached reporters without knowledge of caller modality (Voice, CLI, UI).
-Prompt-Injection Hardening (security.py): Retrieved external data is treated as untrusted and wrapped in explicit <untrusted_source_data> tags with security instructions.
-4. AI Gateway & Model Router (ai/)
-Abstracts AI model providers (Ollama, OpenAI) behind a policy-driven ModelRouter. Providers are scored based on locality, privacy, cost, latency, and capability constraints.
+`	ext
+                        User / Client
+                              │
+               ┌──────────────┴──────────────┐
+               │                             │
+        Voice Interface                CLI / API
+         (STT / TTS)                         │
+               │                             │
+               └──────────────┬──────────────┘
+                              │
+                      NAV Orchestrator
+                              │
+               ┌──────────────┴──────────────┐
+               │                             │
+       Cognition Capability          Research Capability
+               │                             │
+          AI Gateway                    Live Search
+               │                      (DuckDuckGo / Mock)
+          Model Router                       │
+               │                     Concurrent Retrieval
+         Local / Remote AI           (HTML / Text / PDF)
+        (Ollama / OpenAI)                    │
+                                     Evidence Extraction
+                                             │
+                                     Evidence Synthesis
+                                             │
+                                     Progress Reporting
+                                             │
+                                       Security Layer
+                                             │
+                                       Memory Service
+                                      (SQLite Storage)
+Key Invariants (S1–S9)
+Contract Stability: Core contracts in core/contracts/ are implementation-agnostic.
+AI Decoupling: AI providers are hidden behind AIGateway and selected via ModelRouter.
+Interface Agnosticism: Capabilities report progress via ProgressReporter without knowing the consumer.
+Voice as Boundary: Voice is a communication modality, not a reasoning layer.
+Memory Discipline: Memory is explicit; raw research sessions do not pollute memory automatically.
+Security Hardening: External web content is wrapped in <untrusted_source_data> tags and treated strictly as data.
+Bounded Concurrency: Source retrieval uses a bounded ThreadPoolExecutor.
+Partial Failure Isolation: Failure of an individual source does not fail the research query.
+Pluggable Search & Documents: Search engines implement SearchProvider; document parsers (PDF) implement SourceRetriever.
+Research Workflow Pipeline
+text
 
-5. Interfaces Layer (interfaces/)
-Modality adapters (such as VoiceInterface and CLI) convert audio/text input into standard Request objects, execute through the orchestrator, and synthesize replies.
+ResearchQuery
+    │
+    ▼
+1. Discovery (DuckDuckGoSearchProvider / MockSearchProvider)
+    │  Discovers SourceCandidates
+    ▼
+2. Provenance Tracking (ProvenanceTracker)
+    │  Normalizes URLs, assigns stable source_ids
+    ▼
+3. Bounded Retrieval (retrieve_concurrently / HttpxRetriever)
+    │  Fetches HTML, Text, or PDF via pypdf
+    ▼
+4. Evidence Extraction (EvidenceExtractor)
+    │  Extracts structured claims using AI Gateway
+    ▼
+5. Evidence Synthesis (EvidenceSynthesizer)
+    │  Synthesizes supported findings, conflicts, and uncertainties
+    ▼
+ResearchResult (with full provenance traceability)
