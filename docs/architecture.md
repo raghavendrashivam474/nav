@@ -1,86 +1,51 @@
-﻿# NAV Architectural Blueprint
+﻿# NAV Architecture Overview
 
-**Milestone:** `v0.7` (Sprint S7)
+NAV (Navigate · Augment · Venture) is structured as a capability-oriented, offline-first AI system.
 
----
+## Core Architectural Layers
 
-## 1. System Overview
+```text
+                         NAV
+                          │
+                     Orchestrator
+                          │
+             ┌────────────┼────────────┐
+             ↓            ↓            ↓
+         Cognition      Memory      Research
+             │                         │
+             │                  ResearchService
+             │                         │
+             │                 ┌───────┴────────┐
+             │                 ↓                ↓
+             │            Discovery        Retrieval
+             │                                  │
+             │                          bounded concurrency
+             │                                  │
+             │                                  ↓
+             │                              Evidence
+             │                                  │
+             │                              Synthesis
+             │                                  │
+             └────────────┬─────────────────────┘
+                          ↓
+                     AI Gateway
+                          ↓
+                    Model Router
+                          ↓
+                      Providers
+1. Orchestration Layer (core/orchestration/)
+The Orchestrator receives standardized Request payloads and routes them to registered capabilities via CapabilityRegistry. Core remains completely decoupled from capability-internal implementations.
 
-NAV (**Navigate · Augment · Venture**) is designed around strict capability isolation, pluggable AI providers, policy-driven model routing, persistent memory, and systematic research.
-text
+2. Capabilities Layer (capabilities/)
+Cognition: Lightweight text-to-text reasoning and conversational responses.
+Memory: Persistent structured recall using SQLite repository and key-value semantics.
+Research: Deep, multi-step investigation combining source candidate discovery, bounded parallel retrieval, evidence extraction, and contradiction/uncertainty synthesis.
+3. S8 Research Subsystem
+Bounded Concurrency (concurrency.py): Independent source fetching runs via a managed ThreadPoolExecutor bounded by max_concurrent_retrievals (default: 4). Partial failures in one source do not block or cancel other sources.
+Progress Reporting (progress.py): Decoupled ProgressEvent protocol emitting lifecycle milestones (STARTED, DISCOVERY, RETRIEVAL, EXTRACTION, SYNTHESIS, COMPLETED) to attached reporters without knowledge of caller modality (Voice, CLI, UI).
+Prompt-Injection Hardening (security.py): Retrieved external data is treated as untrusted and wrapped in explicit <untrusted_source_data> tags with security instructions.
+4. AI Gateway & Model Router (ai/)
+Abstracts AI model providers (Ollama, OpenAI) behind a policy-driven ModelRouter. Providers are scored based on locality, privacy, cost, latency, and capability constraints.
 
-                  User / Voice Interface
-                            │
-                            ▼
-                        NAV Core
-                            │
-                            ▼
-                       Orchestrator
-                            │
-     ┌──────────────────────┼──────────────────────┐
-     ▼                      ▼                      ▼
-Cognition Capability Memory Capability Research Capability
-(Conversational AI) (SQLite Storage) (Systematic Workflow)
-│ │ │
-└──────────────────────┼──────────────────────┘
-▼
-AI Gateway
-│
-▼
-Model Router
-│
-┌────────────┴────────────┐
-▼ ▼
-Ollama Provider OpenAI Provider
-
-text
-
-
----
-
-## 2. Research Capability Subsystem (S7)
-
-Research operates under the rule: **Research owns research; AI does not own research.**
-Research Query
-│
-▼
-Research Service
-│
-├── 1. Discovery ──────► SearchProvider (Bounded candidates)
-│
-├── 2. Provenance ─────► ProvenanceTracker (URL normalization & dedup)
-│
-├── 3. Retrieval ──────► SourceRetriever (Size budget & timeout isolation)
-│
-├── 4. Extraction ─────► EvidenceExtractor (AI Gateway: research_extraction)
-│
-└── 5. Synthesis ──────► EvidenceSynthesizer (AI Gateway: research_synthesis)
-│
-▼
-ResearchResult
-(Findings + Conflicts + Uncertainties)
-
-text
-
-
-### Deterministic vs. AI Separation:
-- **Deterministic Layer:** URL normalization, source deduplication, HTTP retrieval, timeout handling, content size truncation, provenance ID assignment (`src_*`, `ev_*`).
-- **AI Layer:** Extracting relevant claims, categorizing support, identifying contradictions, framing open questions.
-
----
-
-## 3. Capability Inventory
-
-| Capability | Version | Description | Target |
-|---|---|---|---|
-| `cognition` | `0.2.0` | Conversational reasoning & memory interaction | Orchestrator / Gateway |
-| `memory` | `0.1.0` | Durable persistent key-value & tagged storage | SQLite Repository |
-| `research` | `0.1.0` | Systematic topic exploration and research mapping | Research Service |
-
----
-
-## 4. Architectural Rules & Invariants
-1. Core remains independent of specific capabilities.
-2. Capabilities never invoke external AI providers directly; all AI interactions route through `AIGateway`.
-3. Memory is optional; research results do not automatically pollute persistent memory unless explicitly requested.
-4. External retrieved web content is treated as untrusted data and never dictates system policy.
+5. Interfaces Layer (interfaces/)
+Modality adapters (such as VoiceInterface and CLI) convert audio/text input into standard Request objects, execute through the orchestrator, and synthesize replies.
