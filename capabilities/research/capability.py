@@ -1,9 +1,10 @@
-﻿"""Research capability — registered in the CapabilityRegistry.
+"""Research capability — registered in the CapabilityRegistry.
 
-Implements both the generic `Capability` contract (for Orchestrator
-routing) and `ResearchCapabilityInterface` (for programmatic use).
+Implements both the generic Capability contract (for Orchestrator
+routing) and ResearchCapabilityInterface (for programmatic use).
 
 S8: Added progress reporter support and version bump.
+S9: Added spoken/text summary reply generation for voice and orchestrator consumers.
 """
 
 from __future__ import annotations
@@ -168,10 +169,26 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
                     exc,
                 )
 
-    @staticmethod
-    def _serialize_result(result: ResearchResult) -> dict[str, Any]:
+    @classmethod
+    def _build_summary_reply(cls, result: ResearchResult) -> str:
+        """Generate a concise spoken/readable summary for voice and text interfaces."""
+        if result.findings:
+            statements = [f.statement for f in result.findings[:2]]
+            summary = " ".join(statements)
+            if result.conflicts:
+                conflict_note = result.conflicts[0].statement
+                summary += f" Note: Conflicting findings regarding {conflict_note}"
+            return summary
+        if result.uncertainties:
+            return f"Research found preliminary evidence: {result.uncertainties[0].statement}"
+        num_sources = len(result.sources)
+        return f"Completed research on '{result.query.question}' with {num_sources} sources."
+
+    @classmethod
+    def _serialize_result(cls, result: ResearchResult) -> dict[str, Any]:
         """Convert the structured research map into an API-serializable dictionary."""
         return {
+            "reply": cls._build_summary_reply(result),
             "query": {
                 "question": result.query.question,
                 "scope": result.query.scope,
