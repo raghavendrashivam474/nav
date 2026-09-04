@@ -7,12 +7,17 @@ name = "nav"
 version = "0.1.0"
 description = "NAV -- Navigate · Augment · Venture"
 requires-python = ">=3.10"
-dependencies = ["httpx>=0.27.0"]
+dependencies = [
+    "httpx>=0.27.0",
+    "ddgs>=9.0.0",
+    "pypdf>=4.0.0",
+]
 
 [project.optional-dependencies]
 dev = [
     "ruff>=0.4.0",
     "mypy>=1.10.0",
+    "pytest>=8.0.0",
 ]
 voice = [
     "sounddevice>=0.4.6",
@@ -49,5 +54,15 @@ module = [
     "faster_whisper",
     "pyttsx3.*",
     "pyttsx3",
+    "ddgs.*",
+    "ddgs",
+    "pypdf.*",
+    "pypdf",
 ]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+markers = [
+    "live: live network tests (excluded by default)",
+]
+addopts = "-m \"not live\""

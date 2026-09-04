@@ -1,4 +1,4 @@
-﻿"""Research Service — S7 + S8.
+﻿"""Research Service — S7 + S8 + S9.
 
 Orchestrates the research lifecycle:
   1. Discovery of source candidates
@@ -11,9 +11,14 @@ S8 additions:
   - Concurrent retrieval via ThreadPoolExecutor (bounded)
   - Structured progress reporting (decoupled from interfaces)
   - All S7 limits, timeouts, and failure semantics preserved
+
+S9 additions:
+  - Environment-based default SearchProvider selection (NAV_SEARCH_PROVIDER)
 """
 
 from __future__ import annotations
+
+import os
 
 from capabilities.research.concurrency import (
     DEFAULT_MAX_WORKERS,
@@ -57,7 +62,7 @@ class ResearchService:
         progress_reporter: ProgressReporter | None = None,
         max_concurrent_retrievals: int = DEFAULT_MAX_WORKERS,
     ) -> None:
-        self.search_provider = search_provider or MockSearchProvider()
+        self.search_provider = search_provider or self._default_search_provider()
         self.retriever = retriever or MockRetriever()
         self.gateway = gateway
         self.progress_reporter = progress_reporter or NullProgressReporter()
@@ -69,6 +74,26 @@ class ResearchService:
         if gateway is not None:
             self.extractor = EvidenceExtractor(gateway)
             self.synthesizer = EvidenceSynthesizer(gateway)
+
+    @staticmethod
+    def _default_search_provider() -> SearchProvider:
+        """Select search provider from NAV_SEARCH_PROVIDER env var.
+
+        Defaults to 'mock' for backward compatibility.
+        Set NAV_SEARCH_PROVIDER=duckduckgo for live search.
+        """
+        provider_name = os.environ.get("NAV_SEARCH_PROVIDER", "mock").lower().strip()
+        if provider_name == "duckduckgo":
+            from capabilities.research.providers.duckduckgo import DuckDuckGoSearchProvider
+
+            logger.info("Using live search provider: duckduckgo")
+            return DuckDuckGoSearchProvider()
+        if provider_name != "mock":
+            logger.warning(
+                "Unknown NAV_SEARCH_PROVIDER='%s', falling back to mock",
+                provider_name,
+            )
+        return MockSearchProvider()
 
     def _emit(
         self,
