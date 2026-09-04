@@ -73,7 +73,7 @@ Both AI-assisted layers now use `build_safe_extraction_prompt()` and `build_safe
 - `ResearchCapability` now accepts an optional `progress_reporter` parameter and passes it through to `ResearchService`.
 - Package `__init__.py` exports all new S8 public symbols.
 
-### 1.7 Test Suites (4 new files, 33 new tests)
+### 1.7 Test Suites (4 new files, 32 new tests)
 
 | Test File | Tests | Coverage |
 |---|---|---|
