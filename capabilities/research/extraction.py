@@ -1,7 +1,9 @@
-"""Extraction layer — S7.
+﻿"""Extraction layer — S7 + S8.
 
 Uses the S5 AIGateway/ModelRouter to analyze retrieved source content
 and extract structured pieces of evidence with clean provenance.
+
+S8: Prompt-injection hardening via explicit untrusted-content delimiters.
 """
 
 from __future__ import annotations
@@ -10,6 +12,10 @@ import json
 import re
 import uuid
 
+from capabilities.research.security import (
+    build_safe_extraction_prompt,
+    validate_ai_output,
+)
 from core.contracts.ai import AIGateway, AIMessage, AIRequest
 from core.contracts.research import (
     ResearchEvidence,
@@ -27,11 +33,13 @@ class EvidenceExtractor:
     def __init__(self, gateway: AIGateway) -> None:
         self.gateway = gateway
 
-    def extract(self, query: ResearchQuery, content: RetrievedContent) -> list[ResearchEvidence]:
+    def extract(
+        self, query: ResearchQuery, content: RetrievedContent
+    ) -> list[ResearchEvidence]:
         """Analyzes content and extracts evidence points matching the research question."""
         logger.info("Extracting evidence from source %s", content.source_id)
 
-        prompt = self._build_prompt(query.question, content.text)
+        prompt = build_safe_extraction_prompt(query.question, content.text)
 
         ai_request = AIRequest(
             messages=[AIMessage(role="user", content=prompt)],
@@ -48,29 +56,36 @@ class EvidenceExtractor:
 
         try:
             ai_response = self.gateway.generate(ai_request)
+
+            # S8: Validate AI output for injection leakage
+            is_safe, reason = validate_ai_output(ai_response.content)
+            if not is_safe:
+                logger.warning(
+                    "AI output flagged for source %s: %s. Using fallback.",
+                    content.source_id,
+                    reason,
+                )
+                return self._fallback_extraction(
+                    content.source_id, content.text, query.question
+                )
+
             return self._parse_response(content.source_id, ai_response.content)
         except Exception as exc:
-            logger.error("AI extraction failed for %s: %s", content.source_id, exc)
-            return self._fallback_extraction(content.source_id, content.text, query.question)
+            logger.error(
+                "AI extraction failed for %s: %s", content.source_id, exc
+            )
+            return self._fallback_extraction(
+                content.source_id, content.text, query.question
+            )
 
     @staticmethod
     def _build_prompt(question: str, text: str) -> str:
-        return f"""Analyze the technical text below to identify evidence relevant to:
-"{question}"
+        """Legacy prompt builder — kept for backward compatibility in tests."""
+        return build_safe_extraction_prompt(question, text)
 
-Format your output as a raw JSON array of objects. Do not write markdown code blocks.
-Each object in the array must have exactly these keys:
-- "claim": A clear, single-sentence technical claim or observation.
-- "excerpt": A direct sentence or quote from the text that supports this claim.
-- "relevance": Either "high", "medium", or "low".
-
-Text to analyze:
----
-{text}
----
-JSON:"""
-
-    def _parse_response(self, source_id: str, raw_content: str) -> list[ResearchEvidence]:
+    def _parse_response(
+        self, source_id: str, raw_content: str
+    ) -> list[ResearchEvidence]:
         """Parse AI output with extreme robustness against markdown wrap or partial outputs."""
         cleaned = raw_content.strip()
 
@@ -96,16 +111,23 @@ JSON:"""
                         source_id=source_id,
                         claim=str(item["claim"]).strip(),
                         excerpt=str(item.get("excerpt", "")).strip(),
-                        relevance=str(item.get("relevance", "medium")).lower(),
+                        relevance=str(
+                            item.get("relevance", "medium")
+                        ).lower(),
                     )
                 )
             return evidence_points
 
         except Exception as exc:
-            logger.warning("Failed to parse AI extraction JSON: %s. Using fallback parser.", exc)
+            logger.warning(
+                "Failed to parse AI extraction JSON: %s. Using fallback parser.",
+                exc,
+            )
             return self._fallback_heuristic_parse(source_id, cleaned)
 
-    def _fallback_heuristic_parse(self, source_id: str, text: str) -> list[ResearchEvidence]:
+    def _fallback_heuristic_parse(
+        self, source_id: str, text: str
+    ) -> list[ResearchEvidence]:
         """Parse non-JSON line-by-line responses to avoid failing the research query."""
         evidence_points = []
         lines = text.split("\n")
@@ -119,7 +141,7 @@ JSON:"""
             if trimmed.endswith(":") or trimmed.lower().startswith(prefixes):
                 continue
 
-            clean_line = trimmed.lstrip("-*•1234567890. ")
+            clean_line = trimmed.lstrip("-*\u20221234567890. ")
             if len(clean_line) < 15:
                 continue
 
@@ -137,7 +159,9 @@ JSON:"""
         return evidence_points
 
     @staticmethod
-    def _fallback_extraction(source_id: str, text: str, question: str) -> list[ResearchEvidence]:
+    def _fallback_extraction(
+        source_id: str, text: str, question: str
+    ) -> list[ResearchEvidence]:
         """Completely offline fallback parser."""
         sentences = re.split(r"(?<=[.!?])\s+", text)
         evidence_points = []

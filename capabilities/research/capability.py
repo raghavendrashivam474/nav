@@ -1,7 +1,9 @@
-"""Research capability — registered in the CapabilityRegistry.
+﻿"""Research capability — registered in the CapabilityRegistry.
 
 Implements both the generic `Capability` contract (for Orchestrator
 routing) and `ResearchCapabilityInterface` (for programmatic use).
+
+S8: Added progress reporter support and version bump.
 """
 
 from __future__ import annotations
@@ -9,6 +11,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from capabilities.research.progress import ProgressReporter
 from capabilities.research.service import ResearchService
 from core.contracts.ai import AIGateway
 from core.contracts.capability import Capability, Request, Response
@@ -35,6 +38,7 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
         search_provider: SearchProvider | None = None,
         retriever: SourceRetriever | None = None,
         memory: MemoryCapabilityInterface | None = None,
+        progress_reporter: ProgressReporter | None = None,
     ) -> None:
         if service is not None:
             self._service = service
@@ -43,6 +47,7 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
                 gateway=gateway,
                 search_provider=search_provider,
                 retriever=retriever,
+                progress_reporter=progress_reporter,
             )
         self._memory = memory
 
@@ -60,7 +65,10 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
 
     @property
     def description(self) -> str:
-        return "Systematic topic exploration, evidence collection, and research map synthesis."
+        return (
+            "Systematic topic exploration, evidence collection, "
+            "and research map synthesis."
+        )
 
     # ------------------------------------------------------------------
     # ResearchCapabilityInterface implementation
@@ -76,8 +84,9 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
     def invoke(self, request: Request) -> Response:
         logger.info("Research request received (id=%s)", request.request_id)
 
-        # Support both 'question' and 'prompt' for universal orchestrator compatibility
-        question = request.payload.get("question") or request.payload.get("prompt")
+        question = request.payload.get("question") or request.payload.get(
+            "prompt"
+        )
 
         if not question or not str(question).strip():
             return Response(
@@ -88,7 +97,9 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
             )
 
         max_sources = int(request.payload.get("max_sources", 8))
-        timeout_seconds = float(request.payload.get("timeout_seconds", 15.0))
+        timeout_seconds = float(
+            request.payload.get("timeout_seconds", 15.0)
+        )
         depth = str(request.payload.get("depth", "standard"))
         scope = request.payload.get("scope")
 
@@ -103,8 +114,10 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
         try:
             result = self.perform_research(query)
 
-            # Optional durable memory persistence if requested
-            if request.payload.get("save_to_memory", False) and self._memory is not None:
+            if (
+                request.payload.get("save_to_memory", False)
+                and self._memory is not None
+            ):
                 self._persist_selected_findings(result)
 
             serialized_data = self._serialize_result(result)
@@ -146,9 +159,14 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
             )
             try:
                 self._memory.store(record)
-                logger.info("Persisted research finding to memory: %s", key)
+                logger.info(
+                    "Persisted research finding to memory: %s", key
+                )
             except Exception as exc:
-                logger.warning("Failed to store research finding to memory (non-fatal): %s", exc)
+                logger.warning(
+                    "Failed to store research finding to memory (non-fatal): %s",
+                    exc,
+                )
 
     @staticmethod
     def _serialize_result(result: ResearchResult) -> dict[str, Any]:

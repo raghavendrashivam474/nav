@@ -1,7 +1,9 @@
-"""Synthesis layer — S7.
+﻿"""Synthesis layer — S7 + S8.
 
 Performs high-level synthesis of extracted evidence points, mapping them to
 categorical findings, identifying contradictions, and highlighting uncertainties.
+
+S8: Prompt-injection hardening via explicit untrusted-content delimiters.
 """
 
 from __future__ import annotations
@@ -9,6 +11,10 @@ from __future__ import annotations
 import json
 import re
 
+from capabilities.research.security import (
+    build_safe_synthesis_prompt,
+    validate_ai_output,
+)
 from core.contracts.ai import AIGateway, AIMessage, AIRequest
 from core.contracts.research import (
     ResearchEvidence,
@@ -55,10 +61,17 @@ class EvidenceSynthesizer:
                         support=SupportState.UNKNOWN,
                     ),
                 ),
-                open_questions=("Why did the source retrieval fail or produce empty content?",),
+                open_questions=(
+                    "Why did the source retrieval fail or produce empty content?",
+                ),
             )
 
-        prompt = self._build_prompt(query.question, evidence)
+        ev_lines = [
+            f"ID: {ev.evidence_id} | Claim: {ev.claim}" for ev in evidence
+        ]
+        ev_block = "\n".join(ev_lines)
+
+        prompt = build_safe_synthesis_prompt(query.question, ev_block)
 
         ai_request = AIRequest(
             messages=[AIMessage(role="user", content=prompt)],
@@ -75,31 +88,32 @@ class EvidenceSynthesizer:
 
         try:
             ai_response = self.gateway.generate(ai_request)
-            return self._parse_synthesis(query, sources, evidence, ai_response.content)
+
+            # S8: Validate AI output for injection leakage
+            is_safe, reason = validate_ai_output(ai_response.content)
+            if not is_safe:
+                logger.warning(
+                    "Synthesis output flagged: %s. Using fallback.", reason
+                )
+                return self._fallback_synthesis(query, sources, evidence)
+
+            return self._parse_synthesis(
+                query, sources, evidence, ai_response.content
+            )
         except Exception as exc:
             logger.error("AI synthesis failed: %s", exc)
             return self._fallback_synthesis(query, sources, evidence)
 
     @staticmethod
-    def _build_prompt(question: str, evidence: tuple[ResearchEvidence, ...]) -> str:
-        ev_lines = [f"ID: {ev.evidence_id} | Claim: {ev.claim}" for ev in evidence]
+    def _build_prompt(
+        question: str, evidence: tuple[ResearchEvidence, ...]
+    ) -> str:
+        """Legacy prompt builder — kept for backward compatibility in tests."""
+        ev_lines = [
+            f"ID: {ev.evidence_id} | Claim: {ev.claim}" for ev in evidence
+        ]
         ev_block = "\n".join(ev_lines)
-
-        return f"""You are a scientific synthesizer. Organize this evidence to answer:
-"{question}"
-
-Evidence list:
----
-{ev_block}
----
-
-Return a raw JSON object with EXACTLY these keys (do not add markdown code blocks):
-1. "supported_findings": Array of {{"statement": str, "evidence_ids": [str], "notes": str}}
-2. "conflicting_evidence": Array of {{"statement": str, "evidence_ids": [str], "notes": str}}
-3. "uncertainties": Array of {{"statement": str, "evidence_ids": [str], "notes": str}}
-4. "open_questions": Array of strings representing unresolved investigations.
-
-Format as raw JSON:"""
+        return build_safe_synthesis_prompt(question, ev_block)
 
     def _parse_synthesis(
         self,
@@ -121,7 +135,9 @@ Format as raw JSON:"""
             findings = [
                 ResearchFinding(
                     statement=str(item["statement"]),
-                    evidence_ids=tuple(str(eid) for eid in item.get("evidence_ids", [])),
+                    evidence_ids=tuple(
+                        str(eid) for eid in item.get("evidence_ids", [])
+                    ),
                     support=SupportState.SUPPORTED,
                     notes=item.get("notes"),
                 )
@@ -131,7 +147,9 @@ Format as raw JSON:"""
             conflicts = [
                 ResearchFinding(
                     statement=str(item["statement"]),
-                    evidence_ids=tuple(str(eid) for eid in item.get("evidence_ids", [])),
+                    evidence_ids=tuple(
+                        str(eid) for eid in item.get("evidence_ids", [])
+                    ),
                     support=SupportState.CONFLICTING,
                     notes=item.get("notes"),
                 )
@@ -141,14 +159,18 @@ Format as raw JSON:"""
             uncertainties = [
                 ResearchFinding(
                     statement=str(item["statement"]),
-                    evidence_ids=tuple(str(eid) for eid in item.get("evidence_ids", [])),
+                    evidence_ids=tuple(
+                        str(eid) for eid in item.get("evidence_ids", [])
+                    ),
                     support=SupportState.INSUFFICIENT,
                     notes=item.get("notes"),
                 )
                 for item in data.get("uncertainties", [])
             ]
 
-            open_questions = tuple(str(q) for q in data.get("open_questions", []))
+            open_questions = tuple(
+                str(q) for q in data.get("open_questions", [])
+            )
 
             return ResearchResult(
                 query=query,
@@ -162,7 +184,7 @@ Format as raw JSON:"""
 
         except Exception as exc:
             logger.warning(
-                "Failed to parse synthesis JSON: %s. Rolling back to fallback compiler.",
+                "Failed to parse synthesis JSON: %s. Rolling back to fallback.",
                 exc,
             )
             return self._fallback_synthesis(query, sources, evidence)
