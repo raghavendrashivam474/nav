@@ -17,8 +17,13 @@ from core.contracts.capability import (
     Response,
 )
 from core.contracts.context import (
+    Commitment,
     ConversationContext,
+    CurrentFocus,
+    Goal,
     NavContext,
+    PersonalContext,
+    Project,
     ResearchSessionContext,
     SessionContext,
     UserContext,
@@ -56,6 +61,11 @@ __all__ = [
     "SessionContext",
     "ConversationContext",
     "ResearchSessionContext",
+    "Project",
+    "Goal",
+    "Commitment",
+    "CurrentFocus",
+    "PersonalContext",
     # AI Layer
     "AIGateway",
     "AIMessage",
