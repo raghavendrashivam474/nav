@@ -1,12 +1,13 @@
-"""NAV voice interface (S4).
+"""NAV voice interface (S4 + S9).
 
 Public surface:
-    VoiceInterface      ? the press-to-talk orchestration boundary
-    AudioInput/Output   ? provider-neutral audio value objects
-    SpeechToText        ? STT contract
-    TextToSpeech        ? TTS contract
-    Microphone/Speaker  ? real hardware implementations (require voice extras)
-    FakeMicrophone/FakeSpeaker ? test doubles
+    VoiceInterface      — the press-to-talk orchestration boundary
+    VoiceProgressReporter — natural, selective milestone reporting for long operations
+    AudioInput/Output   — provider-neutral audio value objects
+    SpeechToText        — STT contract
+    TextToSpeech        — TTS contract
+    Microphone/Speaker  — real hardware implementations (require voice extras)
+    FakeMicrophone/FakeSpeaker — test doubles
 
 Provider factories:
     interfaces.voice.stt.factory.create_stt()
@@ -25,6 +26,7 @@ from interfaces.voice.errors import (
 )
 from interfaces.voice.interface import VoiceInterface
 from interfaces.voice.microphone import FakeMicrophone, Microphone
+from interfaces.voice.progress import VoiceProgressReporter
 from interfaces.voice.speaker import FakeSpeaker, Speaker
 
 __all__ = [
@@ -43,4 +45,5 @@ __all__ = [
     "TTSError",
     "VoiceError",
     "VoiceInterface",
+    "VoiceProgressReporter",
 ]
