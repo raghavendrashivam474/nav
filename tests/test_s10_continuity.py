@@ -33,43 +33,31 @@ class TestContinuityResolver:
         assert intent == ContinuationIntent.DEEPEN
 
     def test_focus_explicit(self) -> None:
-        intent, topic = self.resolver.resolve(
-            "Focus on manufacturing", self.ctx
-        )
+        intent, topic = self.resolver.resolve("Focus on manufacturing", self.ctx)
         assert intent == ContinuationIntent.FOCUS
         assert topic is not None
         assert "manufacturing" in topic.lower()
 
     def test_focus_what_about(self) -> None:
-        intent, topic = self.resolver.resolve(
-            "What about energy density?", self.ctx
-        )
+        intent, topic = self.resolver.resolve("What about energy density?", self.ctx)
         assert intent == ContinuationIntent.FOCUS
         assert topic is not None
         assert "energy density" in topic.lower()
 
     def test_provenance_show_sources(self) -> None:
-        intent, _ = self.resolver.resolve(
-            "Show me the sources", self.ctx
-        )
+        intent, _ = self.resolver.resolve("Show me the sources", self.ctx)
         assert intent == ContinuationIntent.PROVENANCE
 
     def test_provenance_references(self) -> None:
-        intent, _ = self.resolver.resolve(
-            "What are your references?", self.ctx
-        )
+        intent, _ = self.resolver.resolve("What are your references?", self.ctx)
         assert intent == ContinuationIntent.PROVENANCE
 
     def test_unrelated_query_returns_new(self) -> None:
-        intent, _ = self.resolver.resolve(
-            "What is the weather today?", self.ctx
-        )
+        intent, _ = self.resolver.resolve("What is the weather today?", self.ctx)
         assert intent == ContinuationIntent.NEW
 
     def test_refine_deepen_uses_open_questions(self) -> None:
-        query = self.resolver.refine_query(
-            "go deeper", ContinuationIntent.DEEPEN, None, self.ctx
-        )
+        query = self.resolver.refine_query("go deeper", ContinuationIntent.DEEPEN, None, self.ctx)
         assert "manufacturing scalability" in query.question
         assert query.depth == "deep"
 
@@ -114,9 +102,7 @@ class TestContextStore:
 
     def test_update_modifies_fields(self) -> None:
         ctx = self.store.create("test")
-        updated = self.store.update(
-            ctx.session_id, depth="deep", depth_level=2
-        )
+        updated = self.store.update(ctx.session_id, depth="deep", depth_level=2)
         assert updated is not None
         assert updated.depth == "deep"
         assert updated.depth_level == 2
@@ -136,6 +122,7 @@ class TestContextStore:
         store = ResearchContextStore(ttl_seconds=0.0)
         store.create("test")
         import time
+
         time.sleep(0.01)
         # Check active count or store retrieval triggers expiration
         store.cleanup_expired()

@@ -19,9 +19,7 @@ logger = get_logger(__name__)
 class ResearchCache:
     """Thread-safe TTL cache for search discovery results."""
 
-    def __init__(
-        self, max_size: int = 200, default_ttl: float = 300.0
-    ) -> None:
+    def __init__(self, max_size: int = 200, default_ttl: float = 300.0) -> None:
         self._cache: dict[str, tuple[list[SourceCandidate], float]] = {}
         self._max_size = max_size
         self._default_ttl = default_ttl

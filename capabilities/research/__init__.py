@@ -1,4 +1,4 @@
-﻿"""Research capability package for NAV — S7 + S8."""
+"""Research capability package for NAV — S7 + S8."""
 
 from capabilities.research.capability import ResearchCapability
 from capabilities.research.concurrency import (

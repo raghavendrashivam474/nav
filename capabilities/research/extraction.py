@@ -1,4 +1,4 @@
-﻿"""Extraction layer — S7 + S8.
+"""Extraction layer — S7 + S8.
 
 Uses the S5 AIGateway/ModelRouter to analyze retrieved source content
 and extract structured pieces of evidence with clean provenance.
@@ -33,9 +33,7 @@ class EvidenceExtractor:
     def __init__(self, gateway: AIGateway) -> None:
         self.gateway = gateway
 
-    def extract(
-        self, query: ResearchQuery, content: RetrievedContent
-    ) -> list[ResearchEvidence]:
+    def extract(self, query: ResearchQuery, content: RetrievedContent) -> list[ResearchEvidence]:
         """Analyzes content and extracts evidence points matching the research question."""
         logger.info("Extracting evidence from source %s", content.source_id)
 
@@ -65,27 +63,19 @@ class EvidenceExtractor:
                     content.source_id,
                     reason,
                 )
-                return self._fallback_extraction(
-                    content.source_id, content.text, query.question
-                )
+                return self._fallback_extraction(content.source_id, content.text, query.question)
 
             return self._parse_response(content.source_id, ai_response.content)
         except Exception as exc:
-            logger.error(
-                "AI extraction failed for %s: %s", content.source_id, exc
-            )
-            return self._fallback_extraction(
-                content.source_id, content.text, query.question
-            )
+            logger.error("AI extraction failed for %s: %s", content.source_id, exc)
+            return self._fallback_extraction(content.source_id, content.text, query.question)
 
     @staticmethod
     def _build_prompt(question: str, text: str) -> str:
         """Legacy prompt builder — kept for backward compatibility in tests."""
         return build_safe_extraction_prompt(question, text)
 
-    def _parse_response(
-        self, source_id: str, raw_content: str
-    ) -> list[ResearchEvidence]:
+    def _parse_response(self, source_id: str, raw_content: str) -> list[ResearchEvidence]:
         """Parse AI output with extreme robustness against markdown wrap or partial outputs."""
         cleaned = raw_content.strip()
 
@@ -111,9 +101,7 @@ class EvidenceExtractor:
                         source_id=source_id,
                         claim=str(item["claim"]).strip(),
                         excerpt=str(item.get("excerpt", "")).strip(),
-                        relevance=str(
-                            item.get("relevance", "medium")
-                        ).lower(),
+                        relevance=str(item.get("relevance", "medium")).lower(),
                     )
                 )
             return evidence_points
@@ -125,9 +113,7 @@ class EvidenceExtractor:
             )
             return self._fallback_heuristic_parse(source_id, cleaned)
 
-    def _fallback_heuristic_parse(
-        self, source_id: str, text: str
-    ) -> list[ResearchEvidence]:
+    def _fallback_heuristic_parse(self, source_id: str, text: str) -> list[ResearchEvidence]:
         """Parse non-JSON line-by-line responses to avoid failing the research query."""
         evidence_points = []
         lines = text.split("\n")
@@ -159,9 +145,7 @@ class EvidenceExtractor:
         return evidence_points
 
     @staticmethod
-    def _fallback_extraction(
-        source_id: str, text: str, question: str
-    ) -> list[ResearchEvidence]:
+    def _fallback_extraction(source_id: str, text: str, question: str) -> list[ResearchEvidence]:
         """Completely offline fallback parser."""
         sentences = re.split(r"(?<=[.!?])\s+", text)
         evidence_points = []

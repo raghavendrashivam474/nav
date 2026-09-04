@@ -1,4 +1,4 @@
-﻿"""S8 Integration tests — end-to-end capability cooperation."""
+"""S8 Integration tests — end-to-end capability cooperation."""
 
 from __future__ import annotations
 
@@ -52,9 +52,7 @@ class TestOrchestratorResearchIntegration:
         registry = CapabilityRegistry()
         reporter = CollectingProgressReporter()
         gateway = FakeAIGateway()
-        cap = ResearchCapability(
-            gateway=gateway, progress_reporter=reporter
-        )
+        cap = ResearchCapability(gateway=gateway, progress_reporter=reporter)
         registry.register(cap)
 
         orchestrator = Orchestrator(registry)
@@ -79,15 +77,10 @@ class TestOrchestratorResearchIntegration:
             retriever=MockRetriever(),
         )
 
-        service.execute_research(
-            ResearchQuery(question="solid-state battery")
-        )
+        service.execute_research(ResearchQuery(question="solid-state battery"))
 
         assert len(gateway.calls) >= 2
-        task_types = [
-            c.options.get("routing", {}).get("task_type", "")
-            for c in gateway.calls
-        ]
+        task_types = [c.options.get("routing", {}).get("task_type", "") for c in gateway.calls]
         assert "research_extraction" in task_types
         assert "research_synthesis" in task_types
 

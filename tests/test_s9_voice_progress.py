@@ -112,13 +112,9 @@ class TestVoiceProgressReporter:
     def test_disabled_reporter_remains_silent(self) -> None:
         tts = FakeTTS()
         speaker = FakeSpeaker()
-        reporter = VoiceProgressReporter(
-            tts=tts, speaker=speaker, enable_spoken_milestones=False
-        )
+        reporter = VoiceProgressReporter(tts=tts, speaker=speaker, enable_spoken_milestones=False)
 
-        reporter.report(
-            ProgressEvent(stage=ProgressStage.DISCOVERY, message="Found 5", total=5)
-        )
+        reporter.report(ProgressEvent(stage=ProgressStage.DISCOVERY, message="Found 5", total=5))
         assert len(tts.spoken) == 0
 
     def test_swallows_tts_exceptions_safely(self) -> None:
@@ -127,6 +123,4 @@ class TestVoiceProgressReporter:
         speaker = FakeSpeaker()
 
         reporter = VoiceProgressReporter(tts=failing_tts, speaker=speaker)
-        reporter.report(
-            ProgressEvent(stage=ProgressStage.DISCOVERY, message="Found 3", total=3)
-        )
+        reporter.report(ProgressEvent(stage=ProgressStage.DISCOVERY, message="Found 3", total=3))

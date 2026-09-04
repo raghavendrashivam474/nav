@@ -1,4 +1,4 @@
-﻿"""Bounded concurrent retrieval for Research — S8.
+"""Bounded concurrent retrieval for Research — S8.
 
 Parallelizes independent source retrieval using a bounded thread pool.
 Preserves S7 partial-failure semantics: one failed source never cancels
@@ -50,9 +50,7 @@ def _retrieve_one(
     """Execute a single retrieval with full error isolation."""
     start = time.monotonic()
     try:
-        content = retriever.retrieve(
-            source=source, max_chars=max_chars, timeout=timeout
-        )
+        content = retriever.retrieve(source=source, max_chars=max_chars, timeout=timeout)
         duration = time.monotonic() - start
         logger.debug("Retrieved %s in %.2fs", source.url, duration)
         return RetrievalOutcome(
@@ -107,9 +105,7 @@ def retrieve_concurrently(
 
     with ThreadPoolExecutor(max_workers=effective_workers) as executor:
         future_to_source = {
-            executor.submit(
-                _retrieve_one, retriever, source, max_chars, timeout
-            ): source
+            executor.submit(_retrieve_one, retriever, source, max_chars, timeout): source
             for source in sources
         }
 
@@ -133,8 +129,6 @@ def retrieve_concurrently(
     ordered = [outcomes_map[s.source_id] for s in sources]
 
     success_count = sum(1 for o in ordered if o.success)
-    logger.info(
-        "Concurrent retrieval complete: %d/%d successful", success_count, total
-    )
+    logger.info("Concurrent retrieval complete: %d/%d successful", success_count, total)
 
     return ordered

@@ -1,4 +1,4 @@
-﻿"""Synthesis layer — S7 + S8.
+"""Synthesis layer — S7 + S8.
 
 Performs high-level synthesis of extracted evidence points, mapping them to
 categorical findings, identifying contradictions, and highlighting uncertainties.
@@ -61,14 +61,10 @@ class EvidenceSynthesizer:
                         support=SupportState.UNKNOWN,
                     ),
                 ),
-                open_questions=(
-                    "Why did the source retrieval fail or produce empty content?",
-                ),
+                open_questions=("Why did the source retrieval fail or produce empty content?",),
             )
 
-        ev_lines = [
-            f"ID: {ev.evidence_id} | Claim: {ev.claim}" for ev in evidence
-        ]
+        ev_lines = [f"ID: {ev.evidence_id} | Claim: {ev.claim}" for ev in evidence]
         ev_block = "\n".join(ev_lines)
 
         prompt = build_safe_synthesis_prompt(query.question, ev_block)
@@ -92,26 +88,18 @@ class EvidenceSynthesizer:
             # S8: Validate AI output for injection leakage
             is_safe, reason = validate_ai_output(ai_response.content)
             if not is_safe:
-                logger.warning(
-                    "Synthesis output flagged: %s. Using fallback.", reason
-                )
+                logger.warning("Synthesis output flagged: %s. Using fallback.", reason)
                 return self._fallback_synthesis(query, sources, evidence)
 
-            return self._parse_synthesis(
-                query, sources, evidence, ai_response.content
-            )
+            return self._parse_synthesis(query, sources, evidence, ai_response.content)
         except Exception as exc:
             logger.error("AI synthesis failed: %s", exc)
             return self._fallback_synthesis(query, sources, evidence)
 
     @staticmethod
-    def _build_prompt(
-        question: str, evidence: tuple[ResearchEvidence, ...]
-    ) -> str:
+    def _build_prompt(question: str, evidence: tuple[ResearchEvidence, ...]) -> str:
         """Legacy prompt builder — kept for backward compatibility in tests."""
-        ev_lines = [
-            f"ID: {ev.evidence_id} | Claim: {ev.claim}" for ev in evidence
-        ]
+        ev_lines = [f"ID: {ev.evidence_id} | Claim: {ev.claim}" for ev in evidence]
         ev_block = "\n".join(ev_lines)
         return build_safe_synthesis_prompt(question, ev_block)
 
@@ -135,9 +123,7 @@ class EvidenceSynthesizer:
             findings = [
                 ResearchFinding(
                     statement=str(item["statement"]),
-                    evidence_ids=tuple(
-                        str(eid) for eid in item.get("evidence_ids", [])
-                    ),
+                    evidence_ids=tuple(str(eid) for eid in item.get("evidence_ids", [])),
                     support=SupportState.SUPPORTED,
                     notes=item.get("notes"),
                 )
@@ -147,9 +133,7 @@ class EvidenceSynthesizer:
             conflicts = [
                 ResearchFinding(
                     statement=str(item["statement"]),
-                    evidence_ids=tuple(
-                        str(eid) for eid in item.get("evidence_ids", [])
-                    ),
+                    evidence_ids=tuple(str(eid) for eid in item.get("evidence_ids", [])),
                     support=SupportState.CONFLICTING,
                     notes=item.get("notes"),
                 )
@@ -159,18 +143,14 @@ class EvidenceSynthesizer:
             uncertainties = [
                 ResearchFinding(
                     statement=str(item["statement"]),
-                    evidence_ids=tuple(
-                        str(eid) for eid in item.get("evidence_ids", [])
-                    ),
+                    evidence_ids=tuple(str(eid) for eid in item.get("evidence_ids", [])),
                     support=SupportState.INSUFFICIENT,
                     notes=item.get("notes"),
                 )
                 for item in data.get("uncertainties", [])
             ]
 
-            open_questions = tuple(
-                str(q) for q in data.get("open_questions", [])
-            )
+            open_questions = tuple(str(q) for q in data.get("open_questions", []))
 
             return ResearchResult(
                 query=query,

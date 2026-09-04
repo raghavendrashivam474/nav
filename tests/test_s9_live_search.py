@@ -1,4 +1,4 @@
-﻿"""S9 Live Search validation — requires network and duckduckgo-search.
+"""S9 Live Search validation — requires network and duckduckgo-search.
 
 Excluded from default test runs via the 'live' marker.
 Run with: pytest -m live -v

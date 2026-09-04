@@ -1,4 +1,4 @@
-﻿"""Progress reporting abstraction for long-running operations — S8.
+"""Progress reporting abstraction for long-running operations — S8.
 
 Provides structured, decoupled progress events and reporter protocols.
 Research and other capabilities report lifecycle progress without
@@ -96,17 +96,13 @@ class LoggingProgressReporter:
                 event.percent,
             )
         else:
-            self._logger.info(
-                "[%s] %s", event.stage.value.upper(), event.message
-            )
+            self._logger.info("[%s] %s", event.stage.value.upper(), event.message)
 
 
 class CollectingProgressReporter:
     """Reporter for tests and CLI summaries that collects all events."""
 
-    def __init__(
-        self, on_event: Callable[[ProgressEvent], None] | None = None
-    ) -> None:
+    def __init__(self, on_event: Callable[[ProgressEvent], None] | None = None) -> None:
         self.events: list[ProgressEvent] = []
         self._on_event = on_event
 

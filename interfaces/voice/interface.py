@@ -1,4 +1,4 @@
-﻿"""VoiceInterface — the S4 press-to-talk orchestration boundary.
+"""VoiceInterface — the S4 press-to-talk orchestration boundary.
 
 S10: Added session continuity tracking so multi-turn voice
 conversations preserve research context across turns.
@@ -76,15 +76,11 @@ class VoiceInterface:
             payload["session_id"] = self._active_session_id
 
         nav_request = Request(request_id=request_id, payload=payload)
-        response = self._orchestrator.route_request(
-            self._capability, nav_request
-        )
+        response = self._orchestrator.route_request(self._capability, nav_request)
 
         if not response.success:
             logger.warning("Cognition failed: %s", response.error)
-            self._try_speak(
-                f"Sorry, something went wrong. {response.error or ''}".strip()
-            )
+            self._try_speak(f"Sorry, something went wrong. {response.error or ''}".strip())
             return response
 
         # S10: Track session from response
@@ -130,6 +126,4 @@ class VoiceInterface:
     @staticmethod
     def _fail(request_id: str, error: str) -> Response:
         logger.warning("Voice cycle failed: %s", error)
-        return Response(
-            request_id=request_id, data={}, success=False, error=error
-        )
+        return Response(request_id=request_id, data={}, success=False, error=error)

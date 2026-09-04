@@ -1,4 +1,4 @@
-﻿"""Security hardening for research AI interactions — S8.
+"""Security hardening for research AI interactions — S8.
 
 Establishes explicit boundaries between NAV instructions and untrusted
 retrieved content. All web content is treated as data, never as authority.
@@ -76,9 +76,7 @@ Text to analyze:
 JSON:"""
 
 
-def build_safe_synthesis_prompt(
-    question: str, evidence_block: str
-) -> str:
+def build_safe_synthesis_prompt(question: str, evidence_block: str) -> str:
     """Build a synthesis prompt with explicit security boundaries."""
     return f"""You are a scientific synthesizer. Organize this evidence to answer:
 "{question}"

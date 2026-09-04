@@ -26,9 +26,7 @@ class FakeProvider:
 
 
 def _candidate(url: str = "https://example.com") -> SourceCandidate:
-    return SourceCandidate(
-        url=url, title="Test", snippet="Test", source_type=SourceType.ARTICLE
-    )
+    return SourceCandidate(url=url, title="Test", snippet="Test", source_type=SourceType.ARTICLE)
 
 
 class TestSearchRouter:

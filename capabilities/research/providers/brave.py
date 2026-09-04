@@ -42,9 +42,7 @@ class BraveSearchProvider:
             }
 
             with httpx.Client(timeout=query.timeout_seconds) as client:
-                resp = client.get(
-                    self._base_url, headers=headers, params=params
-                )
+                resp = client.get(self._base_url, headers=headers, params=params)
                 resp.raise_for_status()
                 data = resp.json()
 

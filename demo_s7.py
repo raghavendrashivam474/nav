@@ -1,4 +1,4 @@
-﻿"""NAV S7 Live Demonstration — Research Capability.
+"""NAV S7 Live Demonstration — Research Capability.
 
 Demonstrates the systematic research lifecycle:
   1. Systematic question formulation
@@ -50,18 +50,14 @@ def main() -> None:
         search_provider=search_provider,
         retriever=retriever,
     )
-    research_capability = ResearchCapability(
-        service=research_service, memory=mem_service
-    )
+    research_capability = ResearchCapability(service=research_service, memory=mem_service)
 
     registry = CapabilityRegistry()
     registry.register(research_capability)
     orchestrator = Orchestrator(registry)
 
-    prompt = (
-        "Research solid-state batteries and identify the major unresolved technical problems."
-    )
-    print(f"\n[USER REQUEST]:\n  \"{prompt}\"\n")
+    prompt = "Research solid-state batteries and identify the major unresolved technical problems."
+    print(f'\n[USER REQUEST]:\n  "{prompt}"\n')
     print("Investigating systematically through NAV Orchestrator...\n")
 
     req = Request(

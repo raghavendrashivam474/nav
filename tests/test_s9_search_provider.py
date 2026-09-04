@@ -42,18 +42,20 @@ class TestDuckDuckGoDiscovery:
 
     def test_discover_returns_candidates(self) -> None:
         """Valid DDGS results become SourceCandidates."""
-        mock_instance = self._make_mock_ddgs([
-            {
-                "href": "https://example.com/article",
-                "title": "Test Article",
-                "body": "This is a test snippet.",
-            },
-            {
-                "href": "https://arxiv.org/abs/1234",
-                "title": "A Paper on ArXiv",
-                "body": "Abstract text here.",
-            },
-        ])
+        mock_instance = self._make_mock_ddgs(
+            [
+                {
+                    "href": "https://example.com/article",
+                    "title": "Test Article",
+                    "body": "This is a test snippet.",
+                },
+                {
+                    "href": "https://arxiv.org/abs/1234",
+                    "title": "A Paper on ArXiv",
+                    "body": "Abstract text here.",
+                },
+            ]
+        )
 
         with patch("ddgs.DDGS", return_value=mock_instance):
             provider = DuckDuckGoSearchProvider()
@@ -68,10 +70,12 @@ class TestDuckDuckGoDiscovery:
 
     def test_discover_respects_max_sources(self) -> None:
         """Provider should not return more than query.max_sources."""
-        mock_instance = self._make_mock_ddgs([
-            {"href": f"https://example.com/{i}", "title": f"Result {i}", "body": ""}
-            for i in range(20)
-        ])
+        mock_instance = self._make_mock_ddgs(
+            [
+                {"href": f"https://example.com/{i}", "title": f"Result {i}", "body": ""}
+                for i in range(20)
+            ]
+        )
 
         with patch("ddgs.DDGS", return_value=mock_instance):
             provider = DuckDuckGoSearchProvider()
@@ -105,11 +109,13 @@ class TestDuckDuckGoDiscovery:
 
     def test_discover_skips_results_without_url(self) -> None:
         """Results missing href or title are filtered out."""
-        mock_instance = self._make_mock_ddgs([
-            {"href": "", "title": "No URL", "body": "skip"},
-            {"href": "https://good.com", "title": "", "body": "skip"},
-            {"href": "https://valid.com", "title": "Valid", "body": "keep"},
-        ])
+        mock_instance = self._make_mock_ddgs(
+            [
+                {"href": "", "title": "No URL", "body": "skip"},
+                {"href": "https://good.com", "title": "", "body": "skip"},
+                {"href": "https://valid.com", "title": "Valid", "body": "keep"},
+            ]
+        )
 
         with patch("ddgs.DDGS", return_value=mock_instance):
             provider = DuckDuckGoSearchProvider()

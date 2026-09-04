@@ -1,4 +1,4 @@
-﻿"""S8 Concurrency tests — bounded parallel retrieval, failure isolation, ordering."""
+"""S8 Concurrency tests — bounded parallel retrieval, failure isolation, ordering."""
 
 from __future__ import annotations
 
@@ -33,9 +33,7 @@ class ConcurrencyTrackingRetriever(SourceRetriever):
     def peak_concurrent(self) -> int:
         return self._peak
 
-    def retrieve(
-        self, source: ResearchSource, max_chars: int, timeout: float
-    ) -> RetrievedContent:
+    def retrieve(self, source: ResearchSource, max_chars: int, timeout: float) -> RetrievedContent:
         with self._lock:
             self._active += 1
             self._peak = max(self._peak, self._active)
@@ -56,9 +54,7 @@ class FlakyRetriever(SourceRetriever):
         self.name = "flaky"
         self._fail_patterns = fail_patterns
 
-    def retrieve(
-        self, source: ResearchSource, max_chars: int, timeout: float
-    ) -> RetrievedContent:
+    def retrieve(self, source: ResearchSource, max_chars: int, timeout: float) -> RetrievedContent:
         for pattern in self._fail_patterns:
             if pattern in source.url:
                 raise ConnectionError(f"Simulated failure for {pattern}")
@@ -75,9 +71,7 @@ class SlowRetriever(SourceRetriever):
         self.name = "slow"
         self._slow_patterns = slow_patterns
 
-    def retrieve(
-        self, source: ResearchSource, max_chars: int, timeout: float
-    ) -> RetrievedContent:
+    def retrieve(self, source: ResearchSource, max_chars: int, timeout: float) -> RetrievedContent:
         for pattern in self._slow_patterns:
             if pattern in source.url:
                 time.sleep(timeout + 0.05)
@@ -129,9 +123,7 @@ class TestConcurrentRetrieval:
 
         assert len(outcomes) == 4
         assert all(o.success for o in outcomes)
-        assert retriever.peak_concurrent > 1, (
-            "Expected parallel execution but peak was 1"
-        )
+        assert retriever.peak_concurrent > 1, "Expected parallel execution but peak was 1"
 
     def test_concurrency_bounded(self):
         """No more than max_workers should execute simultaneously."""
@@ -255,9 +247,7 @@ class TestConcurrentRetrieval:
             max_concurrent_retrievals=4,
         )
 
-        result = service.execute_research(
-            ResearchQuery(question="solid-state battery")
-        )
+        result = service.execute_research(ResearchQuery(question="solid-state battery"))
 
         retrieved = result.sources_by_status(SourceStatus.RETRIEVED)
         assert len(retrieved) >= 2

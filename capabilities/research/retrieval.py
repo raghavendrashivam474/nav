@@ -141,9 +141,7 @@ class HttpxRetriever(SourceRetriever):
         logger.info("Retrieving content for %s (timeout=%.1fs)", source.url, timeout)
 
         limits = httpx.Limits(max_keepalive_connections=2, max_connections=5)
-        headers = {
-            "User-Agent": "NAV-Research-Bot/0.9 (+https://github.com/anti-grav/nav)"
-        }
+        headers = {"User-Agent": "NAV-Research-Bot/0.9 (+https://github.com/anti-grav/nav)"}
 
         with httpx.Client(limits=limits, headers=headers, follow_redirects=True) as client:
             try:
@@ -190,9 +188,7 @@ class HttpxRetriever(SourceRetriever):
                         char_count += len(chunk_str)
                         if char_count >= max_chars:
                             truncated = True
-                            logger.warning(
-                                "Content truncated at limit of %d characters", max_chars
-                            )
+                            logger.warning("Content truncated at limit of %d characters", max_chars)
                             break
 
                     full_text = "".join(text_chunks)[:max_chars]

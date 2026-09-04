@@ -1,4 +1,4 @@
-﻿"""S8 Progress tests — structured event emission at each research stage."""
+"""S8 Progress tests — structured event emission at each research stage."""
 
 from __future__ import annotations
 
@@ -42,9 +42,7 @@ class TestProgressEvents:
             progress_reporter=reporter,
         )
 
-        service.execute_research(
-            ResearchQuery(question="solid-state battery")
-        )
+        service.execute_research(ResearchQuery(question="solid-state battery"))
 
         stages = reporter.stages()
         assert ProgressStage.STARTED in stages
@@ -63,9 +61,7 @@ class TestProgressEvents:
             progress_reporter=reporter,
         )
 
-        service.execute_research(
-            ResearchQuery(question="solid-state battery")
-        )
+        service.execute_research(ResearchQuery(question="solid-state battery"))
 
         stages = reporter.stages()
         assert stages[0] == ProgressStage.STARTED
@@ -89,13 +85,9 @@ class TestProgressEvents:
             progress_reporter=reporter,
         )
 
-        service.execute_research(
-            ResearchQuery(question="solid-state battery")
-        )
+        service.execute_research(ResearchQuery(question="solid-state battery"))
 
-        retrieval_events = [
-            e for e in reporter.events if e.stage == ProgressStage.RETRIEVAL
-        ]
+        retrieval_events = [e for e in reporter.events if e.stage == ProgressStage.RETRIEVAL]
         assert len(retrieval_events) >= 1
 
         final_retrieval = retrieval_events[-1]
@@ -111,13 +103,9 @@ class TestProgressEvents:
             progress_reporter=reporter,
         )
 
-        service.execute_research(
-            ResearchQuery(question="solid-state battery")
-        )
+        service.execute_research(ResearchQuery(question="solid-state battery"))
 
-        completed_events = [
-            e for e in reporter.events if e.stage == ProgressStage.COMPLETED
-        ]
+        completed_events = [e for e in reporter.events if e.stage == ProgressStage.COMPLETED]
         assert len(completed_events) == 1
         meta = completed_events[0].metadata
         assert "sources_retrieved" in meta
@@ -131,9 +119,7 @@ class TestProgressEvents:
             progress_reporter=NullProgressReporter(),
         )
 
-        result = service.execute_research(
-            ResearchQuery(question="solid-state battery")
-        )
+        result = service.execute_research(ResearchQuery(question="solid-state battery"))
         assert result is not None
 
     def test_progress_event_serialization(self):
@@ -151,9 +137,7 @@ class TestProgressEvents:
         assert "timestamp" in d
 
     def test_progress_event_percent_zero_total(self):
-        event = ProgressEvent(
-            stage=ProgressStage.STARTED, message="Starting"
-        )
+        event = ProgressEvent(stage=ProgressStage.STARTED, message="Starting")
         assert event.percent == 0.0
 
     def test_failing_reporter_does_not_break_research(self):
@@ -168,7 +152,5 @@ class TestProgressEvents:
             progress_reporter=BrokenReporter(),
         )
 
-        result = service.execute_research(
-            ResearchQuery(question="solid-state battery")
-        )
+        result = service.execute_research(ResearchQuery(question="solid-state battery"))
         assert result is not None

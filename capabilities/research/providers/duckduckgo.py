@@ -48,20 +48,19 @@ class DuckDuckGoSearchProvider:
         try:
             from ddgs import DDGS
         except ImportError:
-            logger.error(
-                "ddgs package not installed. "
-                "Run: pip install ddgs"
-            )
+            logger.error("ddgs package not installed. Run: pip install ddgs")
             return []
 
         candidates: list[SourceCandidate] = []
 
         try:
             with DDGS() as ddgs:
-                results = list(ddgs.text(
-                    query.question,
-                    max_results=query.max_sources,
-                ))
+                results = list(
+                    ddgs.text(
+                        query.question,
+                        max_results=query.max_sources,
+                    )
+                )
 
                 for result in results:
                     href = result.get("href", "").strip()
@@ -81,9 +80,7 @@ class DuckDuckGoSearchProvider:
                         )
                     )
 
-            logger.info(
-                "DuckDuckGo returned %d candidate(s)", len(candidates)
-            )
+            logger.info("DuckDuckGo returned %d candidate(s)", len(candidates))
 
         except Exception as exc:
             logger.error("DuckDuckGo search failed: %s", exc)

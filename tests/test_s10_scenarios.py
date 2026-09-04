@@ -14,9 +14,7 @@ def _make_capability() -> ResearchCapability:
     """Create a research capability with mock providers and context store."""
     store = ResearchContextStore()
     service = ResearchService()
-    return ResearchCapability(
-        service=service, context_store=store
-    )
+    return ResearchCapability(service=service, context_store=store)
 
 
 class TestScenarioAFreshResearch:

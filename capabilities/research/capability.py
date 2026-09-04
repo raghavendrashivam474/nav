@@ -77,9 +77,7 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
     def invoke(self, request: Request) -> Response:
         logger.info("Research request received (id=%s)", request.request_id)
 
-        question = request.payload.get("question") or request.payload.get(
-            "prompt"
-        )
+        question = request.payload.get("question") or request.payload.get("prompt")
 
         if not question or not str(question).strip():
             return Response(
@@ -98,9 +96,7 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
             context = self._context_store.get(str(session_id))
 
         intent, focus_topic = self._resolver.resolve(question_str, context)
-        query = self._resolver.refine_query(
-            question_str, intent, focus_topic, context
-        )
+        query = self._resolver.refine_query(question_str, intent, focus_topic, context)
 
         # --- S10: Handle PROVENANCE intent (no re-search) ---
         if intent == ContinuationIntent.PROVENANCE and context is not None:
@@ -110,14 +106,9 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
             result = self.perform_research(query)
 
             # --- S10: Update session context ---
-            active_session_id = self._update_session(
-                session_id, intent, query, result, focus_topic
-            )
+            active_session_id = self._update_session(session_id, intent, query, result, focus_topic)
 
-            if (
-                request.payload.get("save_to_memory", False)
-                and self._memory is not None
-            ):
+            if request.payload.get("save_to_memory", False) and self._memory is not None:
                 self._persist_selected_findings(result)
 
             serialized_data = self._serialize_result(result)
@@ -161,9 +152,7 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
             existing = self._context_store.get(session_id)
 
         if existing is not None:
-            new_depth = existing.depth_level + (
-                1 if intent == ContinuationIntent.DEEPEN else 0
-            )
+            new_depth = existing.depth_level + (1 if intent == ContinuationIntent.DEEPEN else 0)
             self._context_store.update(
                 existing.session_id,
                 current_subtopic=focus_topic or query.scope,
@@ -187,9 +176,7 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
             )
             return ctx.session_id
 
-    def _provenance_response(
-        self, request: Request, context: ResearchSessionContext
-    ) -> Response:
+    def _provenance_response(self, request: Request, context: ResearchSessionContext) -> Response:
         """Return provenance from active session without re-searching."""
         reply = (
             f"From the ongoing investigation on '{context.root_query}', "
@@ -232,7 +219,8 @@ class ResearchCapability(Capability, ResearchCapabilityInterface):
                 logger.info("Persisted research finding to memory: %s", key)
             except Exception as exc:
                 logger.warning(
-                    "Failed to store research finding (non-fatal): %s", exc,
+                    "Failed to store research finding (non-fatal): %s",
+                    exc,
                 )
 
     @classmethod

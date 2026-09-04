@@ -1,4 +1,4 @@
-﻿"""NAV S10 Interactive & Automated Continuity Demo.
+"""NAV S10 Interactive & Automated Continuity Demo.
 
 Demonstrates the S10 multi-turn personal research interaction loop.
 """
@@ -22,13 +22,13 @@ from core.orchestration.orchestrator import Orchestrator
 
 
 def print_banner(text: str) -> None:
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"  {text}")
-    print(f"{'='*70}\n")
+    print(f"{'=' * 70}\n")
 
 
 def print_turn(turn_num: int, user_input: str) -> None:
-    print(f"\n--- [TURN {turn_num}] User: \"{user_input}\" ---")
+    print(f'\n--- [TURN {turn_num}] User: "{user_input}" ---')
 
 
 def run_demo() -> None:
@@ -86,12 +86,12 @@ def run_demo() -> None:
         reply = resp.data.get("reply", "")
 
         print(f"  NAV [{elapsed:.1f}ms | Intent: {intent.upper()} | Session: {sid_str}...]:")
-        print(f"  \"{reply}\"")
+        print(f'  "{reply}"')
 
         if "query" in resp.data and isinstance(resp.data["query"], dict):
             q = resp.data["query"]
             print(
-                f"  [Resolved Query]: \"{q.get('question')}\" "
+                f'  [Resolved Query]: "{q.get("question")}" '
                 f"| Scope: {q.get('scope')} | Depth: {q.get('depth')}"
             )
         if "sources" in resp.data and isinstance(resp.data["sources"], list):
@@ -140,12 +140,12 @@ def run_demo() -> None:
         payload={"prompt": "Remember that solid state batteries are critical for Project Titan"},
     )
     cognition_resp = orchestrator.route_request("cognition", explicit_req)
-    print(f"  NAV: \"{cognition_resp.data.get('reply')}\"")
+    print(f'  NAV: "{cognition_resp.data.get("reply")}"')
 
     stored = memory_service.retrieve(MemoryQuery(query_text="Project Titan"))
     val = stored[0].value if stored else ""
     key = stored[0].key if stored else ""
-    print(f"  Durable memories retrieved: {len(stored)} (Key: {key} -> Value: \"{val}\")")
+    print(f'  Durable memories retrieved: {len(stored)} (Key: {key} -> Value: "{val}")')
     print("  [PASS] Explicit long-term memory operates reliably.\n")
 
     # -------------------------------------------------------------

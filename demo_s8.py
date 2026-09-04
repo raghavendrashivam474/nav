@@ -1,4 +1,4 @@
-﻿"""NAV S8 Interactive Demonstration Script.
+"""NAV S8 Interactive Demonstration Script.
 
 Demonstrates:
   1. Capability Integration: Simple Cognition vs Deep Research through Orchestrator
@@ -64,7 +64,7 @@ def main() -> None:
     )
     resp_cognition = orchestrator.route_request("cognition", req_cognition)
     elapsed_cog = time.monotonic() - t0
-    print(f"\nResponse received in {elapsed_cog*1000:.1f}ms:")
+    print(f"\nResponse received in {elapsed_cog * 1000:.1f}ms:")
     print(f"Reply: {resp_cognition.data.get('reply')}")
 
     # 3. Progressive Path: Deep Research with Concurrency & Progress

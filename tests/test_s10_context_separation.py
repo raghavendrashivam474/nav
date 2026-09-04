@@ -20,12 +20,8 @@ class TestContextMemorySeparation:
         repo = SQLiteMemoryRepository(str(db_path))
         mem = MemoryService(repo)
 
-        results = mem.retrieve(
-            MemoryQuery(query_text="solid-state batteries")
-        )
-        assert len(results) == 0, (
-            "Research context leaked into long-term memory!"
-        )
+        results = mem.retrieve(MemoryQuery(query_text="solid-state batteries"))
+        assert len(results) == 0, "Research context leaked into long-term memory!"
 
     def test_explicit_memory_still_works(self, tmp_path) -> None:
         """Explicit memory storage must still function independently."""

@@ -20,9 +20,7 @@ logger = get_logger(__name__)
 class ResearchContextStore:
     """Thread-safe in-memory store for active research sessions."""
 
-    def __init__(
-        self, max_sessions: int = 50, ttl_seconds: float = 3600.0
-    ) -> None:
+    def __init__(self, max_sessions: int = 50, ttl_seconds: float = 3600.0) -> None:
         self._sessions: dict[str, ResearchSessionContext] = {}
         self._timestamps: dict[str, float] = {}
         self._max_sessions = max_sessions
@@ -56,9 +54,7 @@ class ResearchContextStore:
             self._timestamps[session_id] = time.monotonic()
             return self._sessions[session_id]
 
-    def update(
-        self, session_id: str, **kwargs: Any
-    ) -> ResearchSessionContext | None:
+    def update(self, session_id: str, **kwargs: Any) -> ResearchSessionContext | None:
         """Update session fields. Returns updated context or None."""
         with self._lock:
             if session_id not in self._sessions:
@@ -94,9 +90,7 @@ class ResearchContextStore:
         """Remove all expired sessions. Returns count removed."""
         removed = 0
         with self._lock:
-            expired = [
-                sid for sid in self._sessions if self._is_expired(sid)
-            ]
+            expired = [sid for sid in self._sessions if self._is_expired(sid)]
             for sid in expired:
                 del self._sessions[sid]
                 del self._timestamps[sid]

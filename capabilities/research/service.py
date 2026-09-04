@@ -69,19 +69,19 @@ class ResearchService:
 
     @staticmethod
     def _default_search_provider() -> SearchProvider:
-        provider_name = os.environ.get(
-            "NAV_SEARCH_PROVIDER", "mock"
-        ).lower().strip()
+        provider_name = os.environ.get("NAV_SEARCH_PROVIDER", "mock").lower().strip()
         if provider_name == "duckduckgo":
             from capabilities.research.providers.duckduckgo import (
                 DuckDuckGoSearchProvider,
             )
+
             logger.info("Using live search provider: duckduckgo")
             return DuckDuckGoSearchProvider()
         if provider_name == "brave":
             from capabilities.research.providers.brave import (
                 BraveSearchProvider,
             )
+
             logger.info("Using live search provider: brave")
             return BraveSearchProvider()
         if provider_name != "mock":
@@ -114,9 +114,7 @@ class ResearchService:
 
     def execute_research(self, query: ResearchQuery) -> ResearchResult:
         logger.info("Starting research on query: '%s'", query.question)
-        self._emit(
-            ProgressStage.STARTED, f"Research started: {query.question}"
-        )
+        self._emit(ProgressStage.STARTED, f"Research started: {query.question}")
         tracker = ProvenanceTracker(query)
 
         # 1. Source Discovery (with optional cache)
@@ -127,16 +125,12 @@ class ResearchService:
             candidates = self.cache.get(query)
             if candidates is not None:
                 cache_hit = True
-                logger.info(
-                    "Cache hit for discovery: %d candidates", len(candidates)
-                )
+                logger.info("Cache hit for discovery: %d candidates", len(candidates))
 
         if candidates is None:
             try:
                 candidates = self.search_provider.discover(query)
-                logger.info(
-                    "Discovered %d candidate source(s)", len(candidates)
-                )
+                logger.info("Discovered %d candidate source(s)", len(candidates))
             except Exception as exc:
                 logger.error("Search discovery failed: %s", exc)
                 candidates = []
@@ -146,8 +140,7 @@ class ResearchService:
 
         self._emit(
             ProgressStage.DISCOVERY,
-            f"Discovered {len(candidates)} source(s)"
-            + (" (cached)" if cache_hit else ""),
+            f"Discovered {len(candidates)} source(s)" + (" (cached)" if cache_hit else ""),
             completed=len(candidates),
             total=len(candidates),
         )
@@ -166,9 +159,7 @@ class ResearchService:
             total=len(registered_sources),
         )
 
-        def _on_source_complete(
-            completed: int, total: int, url: str
-        ) -> None:
+        def _on_source_complete(completed: int, total: int, url: str) -> None:
             self._emit(
                 ProgressStage.RETRIEVAL,
                 f"Retrieved {completed}/{total} sources",
@@ -189,9 +180,7 @@ class ResearchService:
         retrieved_contents: list[RetrievedContent] = []
         for outcome in outcomes:
             if outcome.success and outcome.content is not None:
-                tracker.update_status(
-                    outcome.source.source_id, SourceStatus.RETRIEVED
-                )
+                tracker.update_status(outcome.source.source_id, SourceStatus.RETRIEVED)
                 retrieved_contents.append(outcome.content)
             else:
                 tracker.update_status(
