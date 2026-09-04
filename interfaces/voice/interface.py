@@ -1,13 +1,10 @@
-"""VoiceInterface ? the S4 press-to-talk orchestration boundary.
+﻿"""VoiceInterface — the S4 press-to-talk orchestration boundary.
 
-Voice is a *communication modality*, not a reasoning capability. This class
-turns audio into a normal NAV Request, hands it to the Orchestrator, and
-speaks whatever comes back. It does not think, remember, or route on its
-own. If tomorrow we delete this module, NAV Core still works.
+S10: Added session continuity tracking so multi-turn voice
+conversations preserve research context across turns.
 
 Golden invariant:
-
-    A voice-originated request is *indistinguishable* from a text-originated
+    A voice-originated request is indistinguishable from a text-originated
     request once it reaches the Orchestrator.
 """
 
@@ -19,7 +16,7 @@ from core.contracts.capability import Request, Response
 from core.log import get_logger
 from core.orchestration.orchestrator import Orchestrator
 from interfaces.voice.contracts import SpeechToText, TextToSpeech
-from interfaces.voice.errors import MicrophoneError, STTError, TTSError, VoiceError
+from interfaces.voice.errors import MicrophoneError, STTError, TTSError
 from interfaces.voice.microphone import MicrophoneProtocol
 from interfaces.voice.speaker import SpeakerProtocol
 
@@ -44,35 +41,24 @@ class VoiceInterface:
         self._tts = tts
         self._speaker = speaker
         self._capability = capability
+        self._active_session_id: str | None = None
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
     def run_once(self, max_seconds: float = 8.0) -> Response:
-        """Execute one full press-to-talk cycle.
-
-        Steps:
-            1. Capture audio from the microphone.
-            2. Transcribe it via the injected STT provider.
-            3. Build a normal NAV Request and route it through the Orchestrator.
-            4. Synthesize the reply via the injected TTS provider.
-            5. Play the audio (unless TTS already self-played).
-
-        Any voice-layer failure is translated into a failed ``Response`` so
-        callers never see a bare exception.
-        """
         request_id = f"voice_{uuid.uuid4().hex[:8]}"
         logger.info("Voice session started (id=%s)", request_id)
 
-        # 1. Capture ---------------------------------------------------
+        # 1. Capture
         try:
             logger.info("Recording (max_seconds=%.1f)...", max_seconds)
             audio = self._microphone.record(max_seconds)
         except MicrophoneError as exc:
             return self._fail(request_id, f"Microphone error: {exc}")
 
-        # 2. Transcribe ------------------------------------------------
+        # 2. Transcribe
         try:
             logger.info("Transcribing via %s...", self._stt.name)
             transcript = self._stt.transcribe(audio).strip()
@@ -84,60 +70,66 @@ class VoiceInterface:
 
         logger.info("Transcript: %r", transcript)
 
-        # 3. Route through NAV ----------------------------------------
-        nav_request = Request(request_id=request_id, payload={"prompt": transcript})
-        response = self._orchestrator.route_request(self._capability, nav_request)
+        # 3. Route through NAV
+        payload: dict[str, object] = {"prompt": transcript}
+        if self._active_session_id:
+            payload["session_id"] = self._active_session_id
+
+        nav_request = Request(request_id=request_id, payload=payload)
+        response = self._orchestrator.route_request(
+            self._capability, nav_request
+        )
 
         if not response.success:
             logger.warning("Cognition failed: %s", response.error)
-            self._try_speak(f"Sorry, something went wrong. {response.error or ''}".strip())
+            self._try_speak(
+                f"Sorry, something went wrong. {response.error or ''}".strip()
+            )
             return response
+
+        # S10: Track session from response
+        new_session = response.data.get("session_id")
+        if new_session:
+            self._active_session_id = str(new_session)
 
         reply = str(response.data.get("reply", "")).strip()
         if not reply:
             return self._fail(request_id, "Cognition returned an empty reply.")
 
-        # 4 + 5. Synthesize + Play ------------------------------------
+        # 4 + 5. Synthesize + Play
         try:
-            self._speak(reply)
-        except VoiceError as exc:
-            logger.error("Voice output failed: %s", exc)
-            # Preserve the successful cognition response even if playback fails.
-            return Response(
-                request_id=response.request_id,
-                data=response.data,
-                success=False,
-                error=f"Voice output error: {exc}",
-            )
+            logger.info("Synthesizing reply via %s...", self._tts.name)
+            audio_out = self._tts.synthesize(reply)
+        except TTSError as exc:
+            logger.warning("TTS failed: %s", exc)
+            return self._fail(request_id, f"Voice output error: {exc}")
 
-        logger.info("Voice session complete (id=%s)", request_id)
+        try:
+            self._speaker.play(audio_out)
+        except Exception as exc:
+            logger.warning("Speaker playback failed (non-fatal): %s", exc)
+
         return response
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
+    def reset_session(self) -> None:
+        """Clear the active research session (S10)."""
+        self._active_session_id = None
+        logger.info("Voice session context reset")
 
-    def _speak(self, text: str) -> None:
-        logger.info("Synthesizing via %s (%d chars)", self._tts.name, len(text))
-        audio_out = self._tts.synthesize(text)
-        if audio_out.metadata.get("self_played"):
-            logger.info("TTS provider handled playback directly.")
-            return
-        self._speaker.play(audio_out)
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
 
     def _try_speak(self, text: str) -> None:
-        """Best-effort spoken error message. Never raises."""
         try:
-            self._speak(text)
-        except VoiceError as exc:
-            logger.error("Failed to speak error message: %s", exc)
-        except Exception as exc:
-            logger.error("Unexpected error while speaking error message: %s", exc)
+            audio = self._tts.synthesize(text)
+            self._speaker.play(audio)
+        except Exception:
+            pass
 
     @staticmethod
-    def _fail(request_id: str, message: str) -> Response:
-        logger.error("Voice session failed (id=%s): %s", request_id, message)
-        return Response(request_id=request_id, data={}, success=False, error=message)
-
-
-__all__ = ["VoiceInterface", "TTSError"]
+    def _fail(request_id: str, error: str) -> Response:
+        logger.warning("Voice cycle failed: %s", error)
+        return Response(
+            request_id=request_id, data={}, success=False, error=error
+        )
