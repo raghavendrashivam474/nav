@@ -1,12 +1,11 @@
-"""Local Whisper STT via ``faster-whisper``.
+﻿"""Whisper speech-to-text implementation — S4 voice boundary.
 
-The heavy import is deferred until first transcription so a base NAV install
-can import ``interfaces.voice`` without the voice extras.
+Uses faster-whisper for local, fast CPU/GPU inference.
+Forces language="en" by default to prevent multilingual mis-detections.
 """
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from core.log import get_logger
@@ -18,67 +17,79 @@ logger = get_logger(__name__)
 
 
 class WhisperSTT(SpeechToText):
-    """Local speech-to-text using faster-whisper.
+    """Speech-to-text using local faster-whisper."""
 
-    Model is loaded lazily on first call to avoid startup cost when voice
-    is imported but unused.
-    """
-
-    def __init__(self, model_size: str | None = None) -> None:
-        self._model_size = model_size or os.environ.get("NAV_WHISPER_MODEL", "base")
-        self._model: Any | None = None
+    def __init__(
+        self,
+        model_size: str = "base",
+        device: str = "cpu",
+        compute_type: str = "int8",
+        language: str = "en",
+    ) -> None:
+        self._model_size = model_size
+        self._device = device
+        self._compute_type = compute_type
+        self._language = language
+        self._model: Any = None
 
     @property
     def name(self) -> str:
-        return f"whisper:{self._model_size}"
+        return f"whisper-{self._model_size}"
 
-    def _load_model(self) -> Any:
+    def _ensure_model(self) -> None:
         if self._model is not None:
-            return self._model
+            return
         try:
             from faster_whisper import WhisperModel  # type: ignore[import-not-found,import-untyped]
         except ImportError as exc:
             raise ConfigurationError(
-                'faster-whisper not installed. Install voice extras: pip install -e ".[voice]"'
+                'faster-whisper is not installed. Install voice extras: pip install -e ".[voice]"'
             ) from exc
 
         logger.info("Loading Whisper model: %s", self._model_size)
         try:
-            self._model = WhisperModel(self._model_size, device="cpu", compute_type="int8")
-        except Exception as exc:  # noqa: BLE001
-            raise STTError(f"Failed to load Whisper model '{self._model_size}': {exc}") from exc
-        return self._model
+            self._model = WhisperModel(
+                self._model_size,
+                device=self._device,
+                compute_type=self._compute_type,
+            )
+        except Exception as exc:
+            raise ConfigurationError(f"Failed to load Whisper model: {exc}") from exc
 
     def transcribe(self, audio: AudioInput) -> str:
-        model = self._load_model()
-
+        self._ensure_model()
         try:
             import numpy as np  # type: ignore[import-not-found,import-untyped]
         except ImportError as exc:
-            raise ConfigurationError("numpy not installed with voice extras.") from exc
+            raise ConfigurationError(
+                'numpy is not installed. Install voice extras: pip install -e ".[voice]"'
+            ) from exc
 
-        # faster-whisper expects mono float32 numpy at 16 kHz.
         samples = audio.samples
-        if not isinstance(samples, np.ndarray):
-            try:
-                samples = np.asarray(samples, dtype=np.float32)
-            except Exception as exc:  # noqa: BLE001
-                raise STTError(f"Cannot convert audio samples to numpy: {exc}") from exc
+        if isinstance(samples, bytes):
+            samples = np.frombuffer(samples, dtype=np.float32)
+        elif not isinstance(samples, np.ndarray):
+            samples = np.array(samples, dtype=np.float32)
 
-        if samples.ndim > 1:
-            samples = samples.mean(axis=1).astype(np.float32)
+        if samples.dtype != np.float32:
+            samples = samples.astype(np.float32)
 
         logger.info(
-            "Whisper transcribing (%d samples @ %d Hz)",
-            samples.shape[0],
+            "Whisper transcribing (%d samples @ %d Hz, lang=%s)",
+            len(samples),
             audio.sample_rate,
+            self._language,
         )
 
         try:
-            segments, _info = model.transcribe(samples, beam_size=1)
-            text = " ".join(seg.text.strip() for seg in segments).strip()
-        except Exception as exc:  # noqa: BLE001
+            segments, info = self._model.transcribe(
+                samples,
+                beam_size=5,
+                language=self._language,
+                vad_filter=True,
+            )
+            text = " ".join(s.text.strip() for s in segments).strip()
+            logger.info("Whisper transcript length: %d chars", len(text))
+            return text
+        except Exception as exc:
             raise STTError(f"Whisper transcription failed: {exc}") from exc
-
-        logger.info("Whisper transcript length: %d chars", len(text))
-        return text

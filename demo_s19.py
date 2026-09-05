@@ -33,7 +33,6 @@ class SmartGateway(AIGateway):
 
     def __init__(self) -> None:
         self._real_gateway: AIGateway | None = None
-        # Attempt to connect to real configured NAV gateway if available
         try:
             from ai.router import ModelRouter
 
@@ -48,9 +47,8 @@ class SmartGateway(AIGateway):
             except Exception:
                 pass
 
-        # Offline fallback intelligent responses
         prompt = request.messages[-1].content.strip()
-        lower = prompt.lower()
+        lower = prompt.lower().replace("sq lite", "sqlite")
 
         if "mongodb" in lower and "sqlite" in lower:
             reply = (
@@ -84,7 +82,6 @@ def main() -> None:
 
     print("\nNAV v1.9 - INITIALIZING S19 INTERACTION SURFACE")
 
-    # 1. Base capabilities wiring
     repo = SQLiteWorkRepository(":memory:")
     service = WorkService(repository=repo)
     work_cap = WorkCapability(service)
@@ -95,17 +92,14 @@ def main() -> None:
     registry.register(cog_cap)
     orchestrator = Orchestrator(registry)
 
-    # 2. S19 Interaction & Presence layers wiring
     session = InteractionSession()
     layer = InteractionLayer(orchestrator, session)
     renderer = TerminalPresenceRenderer()
 
-    # Shared: create initial work context so human controls (pause, status, etc.) work right away
     work = service.create_work("Explore silicon packaging")
     service.auto_plan(work.work_id)
     session.focused_work_id = work.work_id
 
-    # Initial frame
     frame = PresenceFrame(
         state=interaction_state_to_presence_state(layer.get_presence_state()),
         activity_strip=layer._build_activity_strip(),
@@ -149,7 +143,6 @@ def main() -> None:
                     )
                     renderer.render(frame)
 
-                    # If the command resumed or started work, simulate background execution
                     if out.interaction_state == NAVInteractionState.WORKING:
                         print("  [Simulating 1.0s automated background work execution step...]")
                         time.sleep(1.0)
