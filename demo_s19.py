@@ -7,7 +7,6 @@ ASCII Presence Renderer, and optional Voice capture adapter.
 from __future__ import annotations
 
 import argparse
-import os
 import time
 
 from capabilities.cognition.cognition import CognitionCapability
@@ -37,6 +36,7 @@ class SmartGateway(AIGateway):
         # Attempt to connect to real configured NAV gateway if available
         try:
             from ai.router import ModelRouter
+
             self._real_gateway = ModelRouter()
         except Exception:
             pass
@@ -54,8 +54,8 @@ class SmartGateway(AIGateway):
 
         if "mongodb" in lower and "sqlite" in lower:
             reply = (
-                "SQLite is ideal for embedded, serverless, single-file relational storage with ACID guarantees. "
-                "MongoDB is a document store built for high-throughput unstructured JSON and horizontal scaling."
+                "SQLite is ideal for embedded, serverless, single-file relational storage. "
+                "MongoDB is a document store built for high-throughput JSON and scaling."
             )
         elif "who are you" in lower or "about yourself" in lower or "what can you do" in lower:
             reply = (
@@ -65,7 +65,10 @@ class SmartGateway(AIGateway):
         elif "hello" in lower or "hi" in lower or "how are you" in lower:
             reply = "Hello! I am operational and ready to assist with research or workflow tasks."
         else:
-            reply = f"I understood your request about '{prompt}'. I can investigate or execute work on this."
+            reply = (
+                f"I understood your request about '{prompt}'. "
+                "I can investigate or execute work on this."
+            )
 
         return AIResponse(
             content=reply,
@@ -118,7 +121,7 @@ def main() -> None:
         from interfaces.voice.tts.factory import create_tts
 
         print("\n[OK] Voice Loop Enabled. Ready to capture.")
-        print("Commands: Speak 'pause', 'resume', 'status', or ask questions. Type 'exit' to quit.\n")
+        print("Commands: Speak 'pause', 'resume', 'status', or ask. Type 'exit' to quit.\n")
         mic = Microphone()
         speaker = Speaker()
         stt = create_stt()

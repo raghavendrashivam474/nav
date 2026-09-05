@@ -46,7 +46,11 @@ class CommandInterpreter:
             ),
             (
                 UserAction.REQUEST_STATUS,
-                r"^\s*(status|what is the status|what's the status|what's the current status|what is the current status|current status|show progress|how is it going|update|tell me the status)\b",
+                (
+                    r"^\s*(status|what is the status|what's the status|what's the current status|"
+                    r"what is the current status|current status|show progress|how is it going|"
+                    r"update|tell me the status)\b"
+                ),
             ),
         ]
 
