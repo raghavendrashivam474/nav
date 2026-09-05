@@ -2,6 +2,7 @@
 
 Uses faster-whisper for local, fast CPU/GPU inference.
 Forces language="en" by default to prevent multilingual mis-detections.
+Guarantees 1D float32 audio arrays.
 """
 
 from __future__ import annotations
@@ -70,6 +71,10 @@ class WhisperSTT(SpeechToText):
             samples = np.frombuffer(samples, dtype=np.float32)
         elif not isinstance(samples, np.ndarray):
             samples = np.array(samples, dtype=np.float32)
+
+        # Flatten multi-channel or column-vector audio to 1D
+        if samples.ndim > 1:
+            samples = samples.flatten()
 
         if samples.dtype != np.float32:
             samples = samples.astype(np.float32)
