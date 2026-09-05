@@ -1,8 +1,8 @@
-"""Core contracts for NAV.
+﻿"""Core contracts for NAV.
 
 Exposes stable abstract base classes, dataclasses, protocols, and enums
 defining the boundaries between Core, Capabilities, AI infrastructure,
-and Storage/Provider layers.
+Storage/Provider layers, and Technical Intelligence/Work.
 """
 
 from core.contracts.ai import (
@@ -49,6 +49,19 @@ from core.contracts.research import (
     SourceType,
     SupportState,
 )
+from core.contracts.work import (
+    PlannerProtocol,
+    StepEvaluatorProtocol,
+    StepStatus,
+    Work,
+    WorkActivity,
+    WorkActivityType,
+    WorkCapabilityInterface,
+    WorkPlan,
+    WorkQuery,
+    WorkStatus,
+    WorkStep,
+)
 
 __all__ = [
     # Capability & Invocation
@@ -90,4 +103,16 @@ __all__ = [
     "SourceStatus",
     "SourceType",
     "SupportState",
+    # Work & Technical Intelligence (S17)
+    "Work",
+    "WorkPlan",
+    "WorkStep",
+    "WorkStatus",
+    "StepStatus",
+    "WorkActivity",
+    "WorkActivityType",
+    "WorkQuery",
+    "PlannerProtocol",
+    "StepEvaluatorProtocol",
+    "WorkCapabilityInterface",
 ]
