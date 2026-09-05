@@ -1,7 +1,10 @@
-"""Abstract storage boundary for memory persistence.
+﻿"""Abstract storage boundary for memory persistence.
 
 The Core and Service layers depend on this interface, never on SQLite
 directly.  Swap in a different backend by implementing this ABC.
+
+S13: Added get(key) for lifecycle operations (supersede needs to read
+the old record before updating it).
 """
 
 from abc import ABC, abstractmethod
@@ -20,6 +23,11 @@ class MemoryRepository(ABC):
     @abstractmethod
     def save(self, record: MemoryRecord) -> bool:
         """Insert a new record.  Returns False if the key already exists."""
+        pass
+
+    @abstractmethod
+    def get(self, key: str) -> MemoryRecord | None:
+        """Return a single record by key, or None if not found.  S13."""
         pass
 
     @abstractmethod
