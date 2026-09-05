@@ -18,11 +18,11 @@ class CommandInterpreter:
         self._matchers = [
             (
                 UserAction.PAUSE,
-                r"^\s*(pause|pause that|hold on|hold up|hold|stop working)\b",
+                r"^\s*(pause|pause that|hold on|hold up|hold|stop working|wait|freeze)\b",
             ),
             (
                 UserAction.RESUME,
-                r"^\s*(resume|continue|keep going|start again|go ahead|resume work)\b",
+                r"^\s*(resume|continue|keep going|start again|go ahead|resume work|proceed)\b",
             ),
             (
                 UserAction.CANCEL,
@@ -34,7 +34,7 @@ class CommandInterpreter:
             ),
             (
                 UserAction.REJECT,
-                r"^\s*(reject|reject that|no|deny|disallow|dont do that)\b",
+                r"^\s*(reject|reject that|no|deny|disallow|dont do that|don't do that)\b",
             ),
             (
                 UserAction.TAKE_OVER,
@@ -46,7 +46,7 @@ class CommandInterpreter:
             ),
             (
                 UserAction.REQUEST_STATUS,
-                r"^\s*(status|what is the status|show progress|how is it going|update)\b",
+                r"^\s*(status|what is the status|what's the status|what's the current status|what is the current status|current status|show progress|how is it going|update|tell me the status)\b",
             ),
         ]
 

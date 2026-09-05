@@ -7,6 +7,7 @@ ASCII Presence Renderer, and optional Voice capture adapter.
 from __future__ import annotations
 
 import argparse
+import os
 import time
 
 from capabilities.cognition.cognition import CognitionCapability
@@ -28,23 +29,47 @@ from interfaces.presence.derivation import interaction_state_to_presence_state
 from interfaces.presence.terminal_renderer import TerminalPresenceRenderer
 
 
-class DemoGateway(AIGateway):
-    """Simulates realistic AI execution steps. Creates goals when requested."""
+class SmartGateway(AIGateway):
+    """Answers intelligently using configured AI providers or contextual responses."""
+
+    def __init__(self) -> None:
+        self._real_gateway: AIGateway | None = None
+        # Attempt to connect to real configured NAV gateway if available
+        try:
+            from ai.router import ModelRouter
+            self._real_gateway = ModelRouter()
+        except Exception:
+            pass
 
     def generate(self, request: AIRequest) -> AIResponse:
-        p = request.messages[-1].content.lower()
-        if "research" in p or "investigate" in p:
-            return AIResponse(
-                content="I'm spinning up an active Research process for that.",
-                model_used="demo-gateway",
-                usage={},
+        if self._real_gateway is not None:
+            try:
+                return self._real_gateway.generate(request)
+            except Exception:
+                pass
+
+        # Offline fallback intelligent responses
+        prompt = request.messages[-1].content.strip()
+        lower = prompt.lower()
+
+        if "mongodb" in lower and "sqlite" in lower:
+            reply = (
+                "SQLite is ideal for embedded, serverless, single-file relational storage with ACID guarantees. "
+                "MongoDB is a document store built for high-throughput unstructured JSON and horizontal scaling."
             )
+        elif "who are you" in lower or "about yourself" in lower or "what can you do" in lower:
+            reply = (
+                "I am NAV, an intelligent technical assistant. I can research technical topics, "
+                "orchestrate multi-step execution workflows, and respond to your voice commands."
+            )
+        elif "hello" in lower or "hi" in lower or "how are you" in lower:
+            reply = "Hello! I am operational and ready to assist with research or workflow tasks."
+        else:
+            reply = f"I understood your request about '{prompt}'. I can investigate or execute work on this."
+
         return AIResponse(
-            content=(
-                f"Hello! I am NAV. I heard you say: '{request.messages[-1].content}'. "
-                "I can research topics, execute multi-step work, pause, resume, and redirect."
-            ),
-            model_used="demo-gateway",
+            content=reply,
+            model_used="smart-gateway",
             usage={},
         )
 
@@ -60,7 +85,7 @@ def main() -> None:
     repo = SQLiteWorkRepository(":memory:")
     service = WorkService(repository=repo)
     work_cap = WorkCapability(service)
-    cog_cap = CognitionCapability(gateway=DemoGateway())
+    cog_cap = CognitionCapability(gateway=SmartGateway())
 
     registry = CapabilityRegistry()
     registry.register(work_cap)
@@ -93,7 +118,7 @@ def main() -> None:
         from interfaces.voice.tts.factory import create_tts
 
         print("\n[OK] Voice Loop Enabled. Ready to capture.")
-        print("Commands: Speak 'pause', 'resume', 'status', or anything naturally. Type 'exit' to quit.\n")
+        print("Commands: Speak 'pause', 'resume', 'status', or ask questions. Type 'exit' to quit.\n")
         mic = Microphone()
         speaker = Speaker()
         stt = create_stt()
