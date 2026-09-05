@@ -32,6 +32,7 @@ class WorkStatus(str, Enum):
     BLOCKED = "blocked"
     WAITING_FOR_INPUT = "waiting_for_input"
     CANCELLED = "cancelled"
+    WAITING_FOR_APPROVAL = "waiting_for_approval"
 
 
 class StepStatus(str, Enum):
@@ -44,6 +45,7 @@ class StepStatus(str, Enum):
     FAILED = "failed"
     SKIPPED = "skipped"
     WAITING_FOR_INPUT = "waiting_for_input"
+    WAITING_FOR_APPROVAL = "waiting_for_approval"
 
 
 class WorkActivityType(str, Enum):
@@ -60,6 +62,18 @@ class WorkActivityType(str, Enum):
     STATUS_CHANGED = "status_changed"
     INPUT_REQUESTED = "input_requested"
     INPUT_PROVIDED = "input_provided"
+    # S18 — human-control activity types
+    WORK_PAUSED = "work_paused"
+    WORK_RESUMED = "work_resumed"
+    WORK_CANCELLED = "work_cancelled"
+    WORK_REDIRECTED = "work_redirected"
+    PLAN_REVISED = "plan_revised"
+    INTERVENTION_REQUESTED = "intervention_requested"
+    APPROVAL_REQUESTED = "approval_requested"
+    APPROVAL_GRANTED = "approval_granted"
+    APPROVAL_REJECTED = "approval_rejected"
+    HUMAN_TAKEOVER = "human_takeover"
+    CONTROL_RETURNED = "control_returned"
 
 
 # ---------------------------------------------------------------------------

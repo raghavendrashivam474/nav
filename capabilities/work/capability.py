@@ -48,6 +48,26 @@ class WorkCapability(Capability):
                 return self._handle_pause(request)
             elif action == "cancel":
                 return self._handle_cancel(request)
+            elif action == "resume":
+                return self._handle_resume(request)
+            elif action == "request_intervention":
+                return self._handle_request_intervention(request)
+            elif action == "revise_plan":
+                return self._handle_revise_plan(request)
+            elif action == "redirect":
+                return self._handle_redirect(request)
+            elif action == "approve":
+                return self._handle_approve(request)
+            elif action == "reject":
+                return self._handle_reject(request)
+            elif action == "request_input":
+                return self._handle_request_input(request)
+            elif action == "provide_input":
+                return self._handle_provide_input(request)
+            elif action == "take_over":
+                return self._handle_take_over(request)
+            elif action == "return_control":
+                return self._handle_return_control(request)
             else:
                 return Response(
                     request_id=request.request_id,
@@ -146,6 +166,120 @@ class WorkCapability(Capability):
     def _handle_cancel(self, request: Request) -> Response:
         work_id = str(request.payload.get("work_id", ""))
         work = self._service.cancel_work(work_id)
+        return Response(
+            request_id=request.request_id,
+            data={"work_id": work.work_id, "status": work.status.value},
+        )
+
+    def _handle_resume(self, request: Request) -> Response:
+        work_id = str(request.payload.get("work_id", ""))
+        work = self._service.resume_work(work_id)
+        return Response(
+            request_id=request.request_id,
+            data={"work_id": work.work_id, "status": work.status.value},
+        )
+
+    def _handle_request_intervention(self, request: Request) -> Response:
+        work_id = str(request.payload.get("work_id", ""))
+        reason = str(request.payload.get("reason", ""))
+        work = self._service.request_intervention(work_id, reason=reason)
+        return Response(
+            request_id=request.request_id,
+            data={"work_id": work.work_id, "status": work.status.value},
+        )
+
+    def _handle_revise_plan(self, request: Request) -> Response:
+        work_id = str(request.payload.get("work_id", ""))
+        steps_data = request.payload.get("steps", [])
+        reason = str(request.payload.get("reason", ""))
+
+        # Reconstruct WorkStep items from payload
+        from capabilities.work.sqlite_repo import _dict_to_step
+        new_steps = [_dict_to_step(sd) for sd in steps_data]
+
+        work = self._service.revise_plan(work_id, new_steps, reason=reason)
+        return Response(
+            request_id=request.request_id,
+            data={"work_id": work.work_id, "plan_version": work.plan.version if work.plan else 1},
+        )
+
+    def _handle_redirect(self, request: Request) -> Response:
+        work_id = str(request.payload.get("work_id", ""))
+        new_objective = request.payload.get("new_objective")
+        reason = str(request.payload.get("reason", ""))
+        steps_data = request.payload.get("steps")
+
+        new_steps = None
+        if steps_data is not None:
+            from capabilities.work.sqlite_repo import _dict_to_step
+            new_steps = [_dict_to_step(sd) for sd in steps_data]
+
+        work = self._service.redirect_work(
+            work_id,
+            new_objective=new_objective,
+            new_steps=new_steps,
+            reason=reason,
+        )
+        return Response(
+            request_id=request.request_id,
+            data={"work_id": work.work_id, "objective": work.objective},
+        )
+
+    def _handle_approve(self, request: Request) -> Response:
+        work_id = str(request.payload.get("work_id", ""))
+        step_id = str(request.payload.get("step_id", ""))
+        modified_payload = request.payload.get("modified_payload")
+        work = self._service.approve_step(
+            work_id, step_id, modified_payload=modified_payload
+        )
+        return Response(
+            request_id=request.request_id,
+            data={"work_id": work.work_id, "status": work.status.value},
+        )
+
+    def _handle_reject(self, request: Request) -> Response:
+        work_id = str(request.payload.get("work_id", ""))
+        step_id = str(request.payload.get("step_id", ""))
+        reason = str(request.payload.get("reason", ""))
+        work = self._service.reject_step(work_id, step_id, reason=reason)
+        return Response(
+            request_id=request.request_id,
+            data={"work_id": work.work_id, "status": work.status.value},
+        )
+
+    def _handle_request_input(self, request: Request) -> Response:
+        work_id = str(request.payload.get("work_id", ""))
+        step_id = request.payload.get("step_id")
+        prompt = str(request.payload.get("prompt", ""))
+        work = self._service.request_input(work_id, step_id=step_id, prompt=prompt)
+        return Response(
+            request_id=request.request_id,
+            data={"work_id": work.work_id, "status": work.status.value},
+        )
+
+    def _handle_provide_input(self, request: Request) -> Response:
+        work_id = str(request.payload.get("work_id", ""))
+        input_data = request.payload.get("input_data", {})
+        step_id = request.payload.get("step_id")
+        work = self._service.provide_input(work_id, input_data=input_data, step_id=step_id)
+        return Response(
+            request_id=request.request_id,
+            data={"work_id": work.work_id, "status": work.status.value},
+        )
+
+    def _handle_take_over(self, request: Request) -> Response:
+        work_id = str(request.payload.get("work_id", ""))
+        reason = str(request.payload.get("reason", ""))
+        work = self._service.take_over(work_id, reason=reason)
+        return Response(
+            request_id=request.request_id,
+            data={"work_id": work.work_id, "status": work.status.value},
+        )
+
+    def _handle_return_control(self, request: Request) -> Response:
+        work_id = str(request.payload.get("work_id", ""))
+        reason = str(request.payload.get("reason", ""))
+        work = self._service.return_control(work_id, reason=reason)
         return Response(
             request_id=request.request_id,
             data={"work_id": work.work_id, "status": work.status.value},

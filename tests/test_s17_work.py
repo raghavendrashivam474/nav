@@ -202,8 +202,9 @@ class TestWorkModels:
     def test_work_helpers(self) -> None:
         plan = _make_plan(3)
         w = Work(work_id="w1", objective="Test", plan=plan, current_step_id="s1")
-        assert w.get_current_step() is not None
-        assert w.get_current_step().step_id == "s1"
+        current = w.get_current_step()
+        assert current is not None
+        assert current.step_id == "s1"
         assert len(w.completed_steps()) == 0
         assert len(w.pending_steps()) == 3
 
@@ -502,6 +503,7 @@ class TestExecution:
         assert work.plan.steps[0].status == StepStatus.COMPLETED
         assert work.plan.steps[1].status == StepStatus.PENDING
         work = work_service.execute_next_step(work.work_id)
+        assert work.plan is not None
         assert work.plan.steps[1].status == StepStatus.COMPLETED
 
     def test_run_bounded(self, work_service: WorkService) -> None:
@@ -564,8 +566,9 @@ class TestFailure:
         work = svc.execute_next_step(work.work_id)
         fetched = svc.get_work(work.work_id)
         assert fetched is not None
-        assert fetched.plan is not None
-        assert fetched.plan.steps[0].error is not None
+        fetched_plan = fetched.plan
+        assert fetched_plan is not None
+        assert fetched_plan.steps[0].error is not None
 
     def test_retry_step(
         self, work_repo: SQLiteWorkRepository, failing_orchestrator: Orchestrator
