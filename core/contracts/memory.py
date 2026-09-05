@@ -1,3 +1,11 @@
+﻿"""Memory contracts — S6 + S13.
+
+S6: MemoryRecord, MemoryQuery, MemoryCapabilityInterface.
+S13: Added optional intelligent-retrieval filters to MemoryQuery.
+     All new fields default to None, preserving full backward
+     compatibility with every existing MemoryQuery construction site.
+"""
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
@@ -16,14 +24,20 @@ class MemoryQuery:
     query_text: str | None = None
     tags: list[str] = field(default_factory=list)
     limit: int = 10
+    # S13: intelligent retrieval filters (all optional)
+    memory_type: str | None = None
+    min_importance: str | None = None
+    confidence: str | None = None
+    lifecycle_status: str | None = None
 
 
 class MemoryCapabilityInterface(ABC):
     """Contract for persistent memory operations.
 
-    S6 extension: added `update` and `forget` to support the full
-    memory lifecycle required by the sprint Definition of Done.
-    The original `store` / `retrieve` signatures are unchanged.
+    S6: store / retrieve / update / forget.
+    S13: store() auto-applies semantic defaults via the service layer.
+         New lifecycle methods (supersede, detect_contradictions) live
+         on MemoryService, not on this ABC, to avoid breaking changes.
     """
 
     @abstractmethod
