@@ -9,7 +9,11 @@ from __future__ import annotations
 import uuid
 
 from core.log import get_logger
-from interfaces.interaction.contracts import InteractionInput, InteractionInputKind
+from interfaces.interaction.contracts import (
+    InteractionInput,
+    InteractionInputKind,
+    InteractionOutput,
+)
 from interfaces.interaction.interaction_layer import InteractionLayer
 from interfaces.voice.contracts import SpeechToText, TextToSpeech
 from interfaces.voice.errors import MicrophoneError, STTError
@@ -35,11 +39,12 @@ class InteractionVoiceAdapter:
         self._stt = stt
         self._tts = tts
         self._speaker = speaker
+        self.last_transcript: str | None = None
 
-    def run_voice_cycle(self, max_seconds: float = 8.0) -> bool:
+    def run_voice_cycle(self, max_seconds: float = 8.0) -> InteractionOutput | None:
         """Run a single capture-transcribe-process-synthesize cycle.
 
-        Returns True on transcript processed, False on no voice / hardware error.
+        Returns InteractionOutput on success, None on no voice / hardware error.
         """
         req_id = f"voice_cycle_{uuid.uuid4().hex[:8]}"
         logger.info("Starting voice interaction loop (%s)", req_id)
@@ -53,7 +58,7 @@ class InteractionVoiceAdapter:
         except MicrophoneError as exc:
             logger.warning("Microphone capture failed: %s", exc)
             self._layer.session.is_listening = False
-            return False
+            return None
 
         # Transition transient visuals
         self._layer.session.is_listening = False
@@ -65,13 +70,14 @@ class InteractionVoiceAdapter:
         except STTError as exc:
             logger.warning("STT transcription failed: %s", exc)
             self._layer.session.is_thinking = False
-            return False
+            return None
 
         if not transcript:
             logger.info("Empty audio transcription buffer.")
             self._layer.session.is_thinking = False
-            return False
+            return None
 
+        self.last_transcript = transcript
         logger.info("Transcript detected: %r", transcript)
 
         # Dispatch straight through S19 interaction boundary
@@ -90,4 +96,4 @@ class InteractionVoiceAdapter:
         finally:
             self._layer.session.is_speaking = False
 
-        return True
+        return output

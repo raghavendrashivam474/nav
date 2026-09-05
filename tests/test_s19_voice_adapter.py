@@ -46,9 +46,9 @@ class TestInteractionVoiceAdapter(unittest.TestCase):
         layer = InteractionLayer(orchestrator, session)
         adapter = InteractionVoiceAdapter(layer, mic, stt, tts, speaker)
 
-        success = adapter.run_voice_cycle()
+        output = adapter.run_voice_cycle()
 
-        self.assertTrue(success)
+        self.assertIsNotNone(output)
         self.assertEqual(len(speaker.played), 1)
         self.assertIn("NAV heard: Analyze quantum packaging models", tts.synthesize_calls[0])
         self.assertEqual(session.focused_work_id, None)

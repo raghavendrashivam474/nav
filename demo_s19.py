@@ -40,7 +40,10 @@ class DemoGateway(AIGateway):
                 usage={},
             )
         return AIResponse(
-            content=f"Hello! I am NAV S19. You said: '{p}'. Say 'Research [topic]' to start work.",
+            content=(
+                f"Hello! I am NAV. I heard you say: '{request.messages[-1].content}'. "
+                "I can research topics, execute multi-step work, pause, resume, and redirect."
+            ),
             model_used="demo-gateway",
             usage={},
         )
@@ -69,15 +72,20 @@ def main() -> None:
     layer = InteractionLayer(orchestrator, session)
     renderer = TerminalPresenceRenderer()
 
+    # Shared: create initial work context so human controls (pause, status, etc.) work right away
+    work = service.create_work("Explore silicon packaging")
+    service.auto_plan(work.work_id)
+    session.focused_work_id = work.work_id
+
     # Initial frame
     frame = PresenceFrame(
         state=interaction_state_to_presence_state(layer.get_presence_state()),
+        activity_strip=layer._build_activity_strip(),
         focused_work_id=session.focused_work_id,
     )
     renderer.render(frame)
 
     if args.voice:
-        # Load optional voice components
         from interfaces.voice.interaction_voice_adapter import InteractionVoiceAdapter
         from interfaces.voice.microphone import Microphone
         from interfaces.voice.speaker import Speaker
@@ -85,6 +93,7 @@ def main() -> None:
         from interfaces.voice.tts.factory import create_tts
 
         print("\n[OK] Voice Loop Enabled. Ready to capture.")
+        print("Commands: Speak 'pause', 'resume', 'status', or anything naturally. Type 'exit' to quit.\n")
         mic = Microphone()
         speaker = Speaker()
         stt = create_stt()
@@ -93,31 +102,44 @@ def main() -> None:
 
         while True:
             try:
-                print("\n[Press Enter to record voice, 'exit' to quit]")
+                print("[Press Enter to speak 5 seconds of audio, or type 'exit' to quit]")
                 cmd = input("You (voice-toggle) > ").strip().lower()
                 if cmd == "exit":
                     break
-                print("[Listening...]")
-                adapter.run_voice_cycle(max_seconds=5.0)
 
-                # Show current visual frame after voice processing completes
-                frame = PresenceFrame(
-                    state=interaction_state_to_presence_state(layer.get_presence_state()),
-                    activity_strip=layer._build_activity_strip(),
-                    focused_work_id=session.focused_work_id,
-                )
-                renderer.render(frame)
+                print("\n>>> [Listening... Speak now into your microphone] <<<")
+                out = adapter.run_voice_cycle(max_seconds=5.0)
+
+                if out is not None:
+                    print(f'\nYou said: "{adapter.last_transcript}"')
+                    p_state = interaction_state_to_presence_state(layer.get_presence_state())
+                    frame = PresenceFrame(
+                        state=p_state,
+                        activity_strip=out.activity_strip,
+                        current_utterance=out.utterance,
+                        focused_work_id=session.focused_work_id,
+                    )
+                    renderer.render(frame)
+
+                    # If the command resumed or started work, simulate background execution
+                    if out.interaction_state == NAVInteractionState.WORKING:
+                        print("  [Simulating 1.0s automated background work execution step...]")
+                        time.sleep(1.0)
+                        service.execute_next_step(session.focused_work_id)
+                        frame = PresenceFrame(
+                            state=interaction_state_to_presence_state(layer.get_presence_state()),
+                            activity_strip=layer._build_activity_strip(),
+                            focused_work_id=session.focused_work_id,
+                        )
+                        renderer.render(frame)
+                else:
+                    print("\n[No speech detected or recording was silent. Try speaking louder.]")
+
             except KeyboardInterrupt:
                 break
     else:
-        # Standard REPL fallback text flow
         print("\n[OK] Running in Text Mode REPL.")
         print("Commands: 'Research semiconductors', 'pause', 'resume', 'cancel', 'exit'\n")
-
-        # Automatically spawn work context for direct interactive demonstration
-        work = service.create_work("Explore silicon packaging")
-        service.auto_plan(work.work_id)
-        session.focused_work_id = work.work_id
 
         while True:
             try:
@@ -128,7 +150,6 @@ def main() -> None:
                 user_input = InteractionInput(text=user_text, kind=InteractionInputKind.TEXT)
                 out = layer.process_input(user_input)
 
-                # Fetch updated presence visuals and emit
                 p_state = interaction_state_to_presence_state(layer.get_presence_state())
                 frame = PresenceFrame(
                     state=p_state,
@@ -138,12 +159,10 @@ def main() -> None:
                 )
                 renderer.render(frame)
 
-                # Run step automatically if work is running
                 if out.interaction_state == NAVInteractionState.WORKING:
                     print("  [Simulating 1.0s automated background work execution step...]")
                     time.sleep(1.0)
                     service.execute_next_step(session.focused_work_id)
-                    # Refresh visually
                     frame = PresenceFrame(
                         state=interaction_state_to_presence_state(layer.get_presence_state()),
                         activity_strip=layer._build_activity_strip(),
