@@ -2,7 +2,7 @@
 
 Exposes stable abstract base classes, dataclasses, protocols, and enums
 defining the boundaries between Core, Capabilities, AI infrastructure,
-Storage/Provider layers, and Technical Intelligence/Work.
+Storage/Provider layers, Technical Intelligence/Work, and Security.
 """
 
 from core.contracts.ai import (
@@ -48,6 +48,16 @@ from core.contracts.research import (
     SourceStatus,
     SourceType,
     SupportState,
+)
+from core.contracts.security import (
+    SYSTEM_ACTOR,
+    ActorIdentity,
+    ActorType,
+    AuthorizationDecision,
+    AuthorizationOutcome,
+    AuthorizationRequest,
+    SecurityEvent,
+    SecurityEventType,
 )
 from core.contracts.work import (
     PlannerProtocol,
@@ -103,6 +113,15 @@ __all__ = [
     "SourceStatus",
     "SourceType",
     "SupportState",
+    # Security (S20)
+    "ActorIdentity",
+    "ActorType",
+    "AuthorizationDecision",
+    "AuthorizationOutcome",
+    "AuthorizationRequest",
+    "SecurityEvent",
+    "SecurityEventType",
+    "SYSTEM_ACTOR",
     # Work & Technical Intelligence (S17)
     "Work",
     "WorkPlan",
