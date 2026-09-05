@@ -1,4 +1,4 @@
-﻿"""Memory intelligence semantics — S13.
+"""Memory intelligence semantics — S13.
 
 Defines the typed vocabulary for memory classification, importance,
 confidence/provenance, and lifecycle status.  Stored in the existing
@@ -29,6 +29,7 @@ META_SUPERSEDES = "supersedes"
 # Classification
 # ---------------------------------------------------------------------------
 
+
 class MemoryType(str, Enum):
     """What kind of information this memory represents.
 
@@ -49,6 +50,7 @@ class MemoryType(str, Enum):
 # ---------------------------------------------------------------------------
 # Importance
 # ---------------------------------------------------------------------------
+
 
 class Importance(str, Enum):
     """How much NAV should care about this memory."""
@@ -71,6 +73,7 @@ IMPORTANCE_RANK: dict[str, int] = {
 # Confidence / Provenance
 # ---------------------------------------------------------------------------
 
+
 class Confidence(str, Enum):
     """How NAV came to know this information.
 
@@ -87,6 +90,7 @@ class Confidence(str, Enum):
 # ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
+
 
 class LifecycleStatus(str, Enum):
     """Where this memory is in its lifecycle."""

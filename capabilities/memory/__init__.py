@@ -1,4 +1,4 @@
-﻿"""NAV Memory capability — S6 persistent memory + S13 intelligence."""
+"""NAV Memory capability — S6 persistent memory + S13 intelligence."""
 
 from capabilities.memory.capability import MemoryCapability
 from capabilities.memory.repository import MemoryRepository

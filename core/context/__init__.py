@@ -1,4 +1,4 @@
-﻿"""Core context package — S11 + S12 + S14."""
+"""Core context package — S11 + S12 + S14."""
 
 from core.context.context_manager import ContextManager
 from core.context.default_manager import DefaultContextManager

@@ -1,4 +1,4 @@
-﻿"""Memory service layer.
+"""Memory service layer.
 
 Sits between the Capability interface and the storage Repository.
 Owns persistence-decision logic (what deserves to be remembered).
@@ -105,9 +105,7 @@ class MemoryService(MemoryCapabilityInterface):
         old_meta = dict(old.metadata)
         old_meta[META_LIFECYCLE] = LifecycleStatus.SUPERSEDED.value
         old_meta[META_SUPERSEDED_BY] = new_record.key
-        marked_old = MemoryRecord(
-            key=old.key, value=old.value, tags=old.tags, metadata=old_meta
-        )
+        marked_old = MemoryRecord(key=old.key, value=old.value, tags=old.tags, metadata=old_meta)
         if not self._repo.replace(marked_old):
             return False
 

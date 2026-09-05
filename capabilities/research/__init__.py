@@ -1,4 +1,4 @@
-"""Research capability package for NAV — S7 + S8."""
+"""Research capability package for NAV — S7 + S8 + S15."""
 
 from capabilities.research.capability import ResearchCapability
 from capabilities.research.concurrency import (
@@ -6,6 +6,15 @@ from capabilities.research.concurrency import (
     retrieve_concurrently,
 )
 from capabilities.research.discovery import MockSearchProvider
+from capabilities.research.investigation import (
+    Hypothesis,
+    HypothesisStatus,
+    Investigation,
+    InvestigationQuery,
+    InvestigationService,
+    InvestigationStatus,
+    SQLiteInvestigationRepository,
+)
 from capabilities.research.progress import (
     CollectingProgressReporter,
     LoggingProgressReporter,
@@ -48,4 +57,12 @@ __all__ = [
     "build_safe_extraction_prompt",
     "build_safe_synthesis_prompt",
     "validate_ai_output",
+    # S15
+    "Investigation",
+    "InvestigationStatus",
+    "InvestigationQuery",
+    "InvestigationService",
+    "SQLiteInvestigationRepository",
+    "Hypothesis",
+    "HypothesisStatus",
 ]

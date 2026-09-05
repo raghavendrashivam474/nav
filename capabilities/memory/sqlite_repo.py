@@ -1,4 +1,4 @@
-﻿"""SQLite-backed MemoryRepository.
+"""SQLite-backed MemoryRepository.
 
 Uses only the Python standard-library `sqlite3` module.
 No ORM, no external dependencies.
@@ -64,14 +64,11 @@ class SQLiteMemoryRepository(MemoryRepository):
         )
         # S13: idempotent schema migration
         existing_cols = {
-            row["name"]
-            for row in self._conn.execute("PRAGMA table_info(memories)").fetchall()
+            row["name"] for row in self._conn.execute("PRAGMA table_info(memories)").fetchall()
         }
         for col_name, col_def in _S13_COLUMNS:
             if col_name not in existing_cols:
-                self._conn.execute(
-                    f"ALTER TABLE memories ADD COLUMN {col_name} {col_def}"
-                )
+                self._conn.execute(f"ALTER TABLE memories ADD COLUMN {col_name} {col_def}")
                 logger.info("S13 migration: added column %s", col_name)
         self._conn.commit()
         logger.info("SQLite memory DB ready at %s", self._db_path)

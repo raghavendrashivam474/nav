@@ -1,4 +1,4 @@
-﻿"""Memory contracts — S6 + S13.
+"""Memory contracts — S6 + S13.
 
 S6: MemoryRecord, MemoryQuery, MemoryCapabilityInterface.
 S13: Added optional intelligent-retrieval filters to MemoryQuery.
