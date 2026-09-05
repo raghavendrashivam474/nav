@@ -1,8 +1,11 @@
-"""Investigation service layer — S15.
+﻿"""Investigation service layer — S15 + S16.
 
 Manages the lifecycle of persistent research investigations.
 Composes with the existing ResearchService to execute research
 and fold results into long-lived investigation records.
+
+S16: All mutation methods now record InvestigationActivity entries
+so that continuity can report meaningful progress vs. metadata noise.
 
 Key principle: Investigation owns accumulated knowledge;
 ResearchService owns single-shot execution.
@@ -16,9 +19,11 @@ from datetime import datetime, timezone
 from typing import Protocol
 
 from capabilities.research.investigation.models import (
+    ActivityType,
     Hypothesis,
     HypothesisStatus,
     Investigation,
+    InvestigationActivity,
     InvestigationQuery,
     InvestigationStatus,
 )
@@ -52,6 +57,31 @@ class InvestigationService:
         self._repo = repository
         self._repo.initialize()
         self._research_service = research_service
+
+    # ------------------------------------------------------------------
+    # S16: Activity logging helper
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _record_activity(
+        inv: Investigation,
+        activity_type: ActivityType,
+        description: str = "",
+        **meta: object,
+    ) -> Investigation:
+        """Append an activity entry and bump updated_at."""
+        now = datetime.now(timezone.utc).isoformat()
+        entry = InvestigationActivity(
+            timestamp=now,
+            activity_type=activity_type,
+            description=description,
+            metadata={k: v for k, v in meta.items()},
+        )
+        return replace(
+            inv,
+            activity_log=inv.activity_log + (entry,),
+            updated_at=now,
+        )
 
     # ------------------------------------------------------------------
     # Creation
@@ -89,11 +119,7 @@ class InvestigationService:
         objective: str | None = None,
         tags: tuple[str, ...] = (),
     ) -> Investigation:
-        """Create an investigation informed by the current NavContext.
-
-        Derives project_id, goal_id, and additional tags from the
-        user's personal context (S12) without mutating it.
-        """
+        """Create an investigation informed by the current NavContext."""
         project_id: str | None = None
         goal_id: str | None = None
         context_tags: list[str] = list(tags)
@@ -148,7 +174,15 @@ class InvestigationService:
         if merged.status == InvestigationStatus.NEW:
             merged = replace(merged, status=InvestigationStatus.ACTIVE)
 
-        merged = replace(merged, updated_at=datetime.now(timezone.utc).isoformat())
+        # S16: record activity
+        merged = self._record_activity(
+            merged,
+            ActivityType.RESEARCH_CONDUCTED,
+            description=f"Researched: {question}",
+            findings_added=len(result.findings),
+            sources_added=len(result.sources),
+        )
+
         self._repo.update(merged)
         logger.info(
             "Research merged into investigation %s: %d new findings",
@@ -177,7 +211,12 @@ class InvestigationService:
         updated = replace(
             inv,
             hypotheses=inv.hypotheses + (hyp,),
-            updated_at=datetime.now(timezone.utc).isoformat(),
+        )
+        updated = self._record_activity(
+            updated,
+            ActivityType.HYPOTHESIS_ADDED,
+            description=statement,
+            hypothesis_id=hyp.hypothesis_id,
         )
         self._repo.update(updated)
         return updated
@@ -212,7 +251,13 @@ class InvestigationService:
         updated = replace(
             inv,
             hypotheses=tuple(new_hyps),
-            updated_at=datetime.now(timezone.utc).isoformat(),
+        )
+        updated = self._record_activity(
+            updated,
+            ActivityType.HYPOTHESIS_UPDATED,
+            description=f"{hypothesis_id} -> {status.value}",
+            hypothesis_id=hypothesis_id,
+            new_status=status.value,
         )
         self._repo.update(updated)
         return updated
@@ -241,7 +286,11 @@ class InvestigationService:
         updated = replace(
             inv,
             findings=inv.findings + (finding,),
-            updated_at=datetime.now(timezone.utc).isoformat(),
+        )
+        updated = self._record_activity(
+            updated,
+            ActivityType.FINDING_ADDED,
+            description=statement,
         )
         self._repo.update(updated)
         return updated
@@ -253,7 +302,11 @@ class InvestigationService:
         updated = replace(
             inv,
             open_questions=inv.open_questions + (question,),
-            updated_at=datetime.now(timezone.utc).isoformat(),
+        )
+        updated = self._record_activity(
+            updated,
+            ActivityType.QUESTION_ADDED,
+            description=question,
         )
         self._repo.update(updated)
         return updated
@@ -266,7 +319,11 @@ class InvestigationService:
         updated = replace(
             inv,
             open_questions=remaining,
-            updated_at=datetime.now(timezone.utc).isoformat(),
+        )
+        updated = self._record_activity(
+            updated,
+            ActivityType.QUESTION_RESOLVED,
+            description=question,
         )
         self._repo.update(updated)
         return updated
@@ -282,7 +339,12 @@ class InvestigationService:
         updated = replace(
             inv,
             status=status,
-            updated_at=datetime.now(timezone.utc).isoformat(),
+        )
+        updated = self._record_activity(
+            updated,
+            ActivityType.STATUS_CHANGED,
+            description=f"-> {status.value}",
+            new_status=status.value,
         )
         self._repo.update(updated)
         logger.info("Investigation %s -> %s", investigation_id, status.value)
@@ -321,27 +383,21 @@ class InvestigationService:
         Deduplicates sources by source_id, evidence by evidence_id,
         findings by statement text, and open questions by exact match.
         """
-        # --- sources ---
         existing_source_ids = {s.source_id for s in inv.sources}
         new_sources = [s for s in result.sources if s.source_id not in existing_source_ids]
 
-        # --- evidence ---
         existing_ev_ids = {e.evidence_id for e in inv.evidence}
         new_evidence = [e for e in result.evidence if e.evidence_id not in existing_ev_ids]
 
-        # --- findings ---
         existing_statements = {f.statement for f in inv.findings}
         new_findings = [f for f in result.findings if f.statement not in existing_statements]
 
-        # --- conflicts ---
         existing_conflicts = {f.statement for f in inv.conflicts}
         new_conflicts = [f for f in result.conflicts if f.statement not in existing_conflicts]
 
-        # --- uncertainties ---
         existing_unc = {f.statement for f in inv.uncertainties}
         new_unc = [f for f in result.uncertainties if f.statement not in existing_unc]
 
-        # --- open questions ---
         existing_oq = set(inv.open_questions)
         new_oq = [q for q in result.open_questions if q not in existing_oq]
 

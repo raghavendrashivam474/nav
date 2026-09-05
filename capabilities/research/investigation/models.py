@@ -1,8 +1,12 @@
-"""Investigation models — S15.
+﻿"""Investigation models — S15 + S16.
 
 Persistent, first-class investigation entities that accumulate
 findings, evidence, sources, hypotheses, and open questions
 across multiple research interactions.
+
+S16: Added InvestigationActivity and activity_log for temporal
+continuity — enables distinguishing meaningful research progress
+from metadata changes.
 
 Entirely additive: reuses existing ResearchFinding, ResearchSource,
 ResearchEvidence, and SupportState from core.contracts.research.
@@ -45,6 +49,18 @@ class HypothesisStatus(str, Enum):
     INCONCLUSIVE = "inconclusive"
 
 
+class ActivityType(str, Enum):
+    """Types of meaningful investigation activity — S16."""
+
+    RESEARCH_CONDUCTED = "research_conducted"
+    FINDING_ADDED = "finding_added"
+    HYPOTHESIS_ADDED = "hypothesis_added"
+    HYPOTHESIS_UPDATED = "hypothesis_updated"
+    QUESTION_ADDED = "question_added"
+    QUESTION_RESOLVED = "question_resolved"
+    STATUS_CHANGED = "status_changed"
+
+
 # ---------------------------------------------------------------------------
 # Data models
 # ---------------------------------------------------------------------------
@@ -63,6 +79,21 @@ class Hypothesis:
 
 
 @dataclass(frozen=True)
+class InvestigationActivity:
+    """A record of meaningful activity within an investigation — S16.
+
+    Distinguishes actual research progress from incidental metadata
+    changes (e.g. tag edits) so that continuation can report what
+    was *last explored*, not just when the row was last touched.
+    """
+
+    timestamp: str
+    activity_type: ActivityType
+    description: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class Investigation:
     """A persistent, evolving research investigation.
 
@@ -71,6 +102,8 @@ class Investigation:
     existing research data models so that nothing is lost or
     duplicated when a single-shot ResearchResult is folded into a
     long-lived investigation.
+
+    S16: activity_log tracks meaningful mutations for continuity.
     """
 
     investigation_id: str
@@ -90,6 +123,7 @@ class Investigation:
     created_at: str = ""
     updated_at: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
+    activity_log: tuple[InvestigationActivity, ...] = ()
 
     # -- helpers ----------------------------------------------------------
 

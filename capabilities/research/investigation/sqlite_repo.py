@@ -1,11 +1,11 @@
-"""SQLite-backed InvestigationRepository — S15.
+﻿"""SQLite-backed InvestigationRepository — S15 + S16.
 
 Uses only the Python standard-library sqlite3 module.
-Complex nested objects (findings, sources, evidence, hypotheses)
-are stored as a JSON blob in the ``data`` column, while the most
-commonly queried fields get dedicated columns.
+Complex nested objects (findings, sources, evidence, hypotheses,
+activity_log) are stored as a JSON blob in the ``data`` column.
 
-Pattern follows capabilities/memory/sqlite_repo.py.
+S16: Added activity_log serialization (backward compatible —
+old records without activity_log deserialize to an empty tuple).
 """
 
 from __future__ import annotations
@@ -16,9 +16,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from capabilities.research.investigation.models import (
+    ActivityType,
     Hypothesis,
     HypothesisStatus,
     Investigation,
+    InvestigationActivity,
     InvestigationQuery,
     InvestigationStatus,
 )
@@ -131,6 +133,24 @@ def _dict_to_hypothesis(d: dict) -> Hypothesis:
     )
 
 
+def _activity_to_dict(a: InvestigationActivity) -> dict:
+    return {
+        "timestamp": a.timestamp,
+        "activity_type": a.activity_type.value,
+        "description": a.description,
+        "metadata": a.metadata,
+    }
+
+
+def _dict_to_activity(d: dict) -> InvestigationActivity:
+    return InvestigationActivity(
+        timestamp=d["timestamp"],
+        activity_type=ActivityType(d.get("activity_type", "research_conducted")),
+        description=d.get("description", ""),
+        metadata=d.get("metadata", {}),
+    )
+
+
 def _investigation_to_data_blob(inv: Investigation) -> str:
     """Serialise the complex nested fields into a JSON string."""
     payload = {
@@ -142,6 +162,7 @@ def _investigation_to_data_blob(inv: Investigation) -> str:
         "evidence": [_evidence_to_dict(e) for e in inv.evidence],
         "open_questions": list(inv.open_questions),
         "metadata": inv.metadata,
+        "activity_log": [_activity_to_dict(a) for a in inv.activity_log],
     }
     return json.dumps(payload)
 
@@ -158,6 +179,9 @@ def _data_blob_to_fields(blob: str) -> dict:
         "evidence": tuple(_dict_to_evidence(e) for e in raw.get("evidence", ())),
         "open_questions": tuple(raw.get("open_questions", ())),
         "metadata": raw.get("metadata", {}),
+        "activity_log": tuple(
+            _dict_to_activity(a) for a in raw.get("activity_log", ())
+        ),
     }
 
 
