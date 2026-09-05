@@ -83,7 +83,8 @@ class InteractionVoiceAdapter:
         try:
             logger.info("Synthesizing response utterance...")
             audio_out = self._tts.synthesize(output.utterance)
-            self._speaker.play(audio_out)
+            if not audio_out.metadata.get("self_played"):
+                self._speaker.play(audio_out)
         except Exception as exc:
             logger.warning("Speech output generation failed: %s", exc)
         finally:
