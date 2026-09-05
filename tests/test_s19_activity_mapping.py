@@ -13,6 +13,7 @@ class TestActivityMapping(unittest.TestCase):
         )
         mapped = work_activity_to_interaction_activity(act)
         self.assertIsNotNone(mapped)
+        assert mapped is not None
         self.assertEqual(mapped.description, "Running step: Compare packaging costs")
 
     def test_unexposed_reasoning_mapping_ignored(self) -> None:

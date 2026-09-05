@@ -58,18 +58,24 @@ class TestEndToEndWorkflowControl(unittest.TestCase):
 
         self.assertEqual(out.kind, InteractionOutputKind.CONTROL_ACK)
         self.assertEqual(self.layer.get_presence_state(), NAVInteractionState.PAUSED)
-        self.assertEqual(self.service.get_work(work.work_id).status, WorkStatus.PAUSED)
+        w = self.service.get_work(work.work_id)
+        assert w is not None
+        self.assertEqual(w.status, WorkStatus.PAUSED)
 
         # 3. User Resume action
         user_input = InteractionInput(text="resume", kind=InteractionInputKind.TEXT)
         out = self.layer.process_input(user_input)
 
         self.assertEqual(self.layer.get_presence_state(), NAVInteractionState.WORKING)
-        self.assertEqual(self.service.get_work(work.work_id).status, WorkStatus.RUNNING)
+        w = self.service.get_work(work.work_id)
+        assert w is not None
+        self.assertEqual(w.status, WorkStatus.RUNNING)
 
         # 4. User Cancel action
         user_input = InteractionInput(text="cancel that", kind=InteractionInputKind.TEXT)
         out = self.layer.process_input(user_input)
 
         self.assertEqual(self.layer.get_presence_state(), NAVInteractionState.COMPLETED)
-        self.assertEqual(self.service.get_work(work.work_id).status, WorkStatus.CANCELLED)
+        w = self.service.get_work(work.work_id)
+        assert w is not None
+        self.assertEqual(w.status, WorkStatus.CANCELLED)
