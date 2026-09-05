@@ -1,4 +1,4 @@
-﻿"""S13 Memory Intelligence tests.
+"""S13 Memory Intelligence tests.
 
 Covers: semantics, schema migration, intelligent store/retrieve,
 supersede lifecycle, contradiction detection, decision memory,
@@ -78,11 +78,13 @@ class TestSemantics:
         assert meta[META_PROVENANCE] == ""
 
     def test_apply_defaults_preserves_existing(self) -> None:
-        meta = apply_defaults({
-            META_TYPE: "decision",
-            META_IMPORTANCE: "critical",
-            "custom_key": "custom_value",
-        })
+        meta = apply_defaults(
+            {
+                META_TYPE: "decision",
+                META_IMPORTANCE: "critical",
+                "custom_key": "custom_value",
+            }
+        )
         assert meta[META_TYPE] == "decision"
         assert meta[META_IMPORTANCE] == "critical"
         assert meta[META_CONFIDENCE] == "explicit"  # default filled
@@ -164,31 +166,46 @@ class TestIntelligentStoreRetrieve:
         assert results[0].metadata[META_IMPORTANCE] == "high"
 
     def test_filter_by_memory_type(self, service: MemoryService) -> None:
-        service.store(MemoryRecord(
-            key="f1", value="Python 3.13",
-            metadata={META_TYPE: "fact"},
-        ))
-        service.store(MemoryRecord(
-            key="d1", value="Use async",
-            metadata={META_TYPE: "decision"},
-        ))
+        service.store(
+            MemoryRecord(
+                key="f1",
+                value="Python 3.13",
+                metadata={META_TYPE: "fact"},
+            )
+        )
+        service.store(
+            MemoryRecord(
+                key="d1",
+                value="Use async",
+                metadata={META_TYPE: "decision"},
+            )
+        )
         results = service.retrieve(MemoryQuery(memory_type="decision"))
         assert len(results) == 1
         assert results[0].key == "d1"
 
     def test_filter_by_min_importance(self, service: MemoryService) -> None:
-        service.store(MemoryRecord(
-            key="low1", value="trivial",
-            metadata={META_IMPORTANCE: "low"},
-        ))
-        service.store(MemoryRecord(
-            key="high1", value="critical thing",
-            metadata={META_IMPORTANCE: "high"},
-        ))
-        service.store(MemoryRecord(
-            key="crit1", value="most important",
-            metadata={META_IMPORTANCE: "critical"},
-        ))
+        service.store(
+            MemoryRecord(
+                key="low1",
+                value="trivial",
+                metadata={META_IMPORTANCE: "low"},
+            )
+        )
+        service.store(
+            MemoryRecord(
+                key="high1",
+                value="critical thing",
+                metadata={META_IMPORTANCE: "high"},
+            )
+        )
+        service.store(
+            MemoryRecord(
+                key="crit1",
+                value="most important",
+                metadata={META_IMPORTANCE: "critical"},
+            )
+        )
         results = service.retrieve(MemoryQuery(min_importance="high"))
         keys = {r.key for r in results}
         assert "high1" in keys
@@ -196,48 +213,67 @@ class TestIntelligentStoreRetrieve:
         assert "low1" not in keys
 
     def test_filter_by_confidence(self, service: MemoryService) -> None:
-        service.store(MemoryRecord(
-            key="e1", value="explicit fact",
-            metadata={META_CONFIDENCE: "explicit"},
-        ))
-        service.store(MemoryRecord(
-            key="i1", value="inferred thing",
-            metadata={META_CONFIDENCE: "inferred"},
-        ))
+        service.store(
+            MemoryRecord(
+                key="e1",
+                value="explicit fact",
+                metadata={META_CONFIDENCE: "explicit"},
+            )
+        )
+        service.store(
+            MemoryRecord(
+                key="i1",
+                value="inferred thing",
+                metadata={META_CONFIDENCE: "inferred"},
+            )
+        )
         results = service.retrieve(MemoryQuery(confidence="inferred"))
         assert len(results) == 1
         assert results[0].key == "i1"
 
     def test_filter_by_lifecycle(self, service: MemoryService) -> None:
-        service.store(MemoryRecord(
-            key="a1", value="active",
-            metadata={META_LIFECYCLE: "active"},
-        ))
-        service.store(MemoryRecord(
-            key="s1", value="superseded",
-            metadata={META_LIFECYCLE: "superseded"},
-        ))
+        service.store(
+            MemoryRecord(
+                key="a1",
+                value="active",
+                metadata={META_LIFECYCLE: "active"},
+            )
+        )
+        service.store(
+            MemoryRecord(
+                key="s1",
+                value="superseded",
+                metadata={META_LIFECYCLE: "superseded"},
+            )
+        )
         active = service.retrieve(MemoryQuery(lifecycle_status="active"))
         assert all(r.key == "a1" for r in active)
         superseded = service.retrieve(MemoryQuery(lifecycle_status="superseded"))
         assert all(r.key == "s1" for r in superseded)
 
     def test_combined_filters(self, service: MemoryService) -> None:
-        service.store(MemoryRecord(
-            key="d1", value="decision A",
-            metadata={META_TYPE: "decision", META_IMPORTANCE: "high"},
-        ))
-        service.store(MemoryRecord(
-            key="d2", value="decision B",
-            metadata={META_TYPE: "decision", META_IMPORTANCE: "low"},
-        ))
-        service.store(MemoryRecord(
-            key="f1", value="fact C",
-            metadata={META_TYPE: "fact", META_IMPORTANCE: "high"},
-        ))
-        results = service.retrieve(MemoryQuery(
-            memory_type="decision", min_importance="high"
-        ))
+        service.store(
+            MemoryRecord(
+                key="d1",
+                value="decision A",
+                metadata={META_TYPE: "decision", META_IMPORTANCE: "high"},
+            )
+        )
+        service.store(
+            MemoryRecord(
+                key="d2",
+                value="decision B",
+                metadata={META_TYPE: "decision", META_IMPORTANCE: "low"},
+            )
+        )
+        service.store(
+            MemoryRecord(
+                key="f1",
+                value="fact C",
+                metadata={META_TYPE: "fact", META_IMPORTANCE: "high"},
+            )
+        )
+        results = service.retrieve(MemoryQuery(memory_type="decision", min_importance="high"))
         assert len(results) == 1
         assert results[0].key == "d1"
 
@@ -248,16 +284,18 @@ class TestIntelligentStoreRetrieve:
 
 
 class TestSupersede:
-    def test_supersede_marks_old_and_creates_new(
-        self, service: MemoryService
-    ) -> None:
-        service.store(MemoryRecord(
-            key="pref1", value="prefer SQLite",
-            tags=["database"],
-            metadata={META_TYPE: "preference"},
-        ))
+    def test_supersede_marks_old_and_creates_new(self, service: MemoryService) -> None:
+        service.store(
+            MemoryRecord(
+                key="pref1",
+                value="prefer SQLite",
+                tags=["database"],
+                metadata={META_TYPE: "preference"},
+            )
+        )
         new = MemoryRecord(
-            key="pref2", value="prefer PostgreSQL",
+            key="pref2",
+            value="prefer PostgreSQL",
             tags=["database"],
             metadata={META_TYPE: "preference"},
         )
@@ -277,41 +315,44 @@ class TestSupersede:
         assert len(new_results) == 1
         assert new_results[0].metadata[META_SUPERSEDES] == "pref1"
 
-    def test_supersede_nonexistent_returns_false(
-        self, service: MemoryService
-    ) -> None:
+    def test_supersede_nonexistent_returns_false(self, service: MemoryService) -> None:
         new = MemoryRecord(key="new1", value="v")
         assert service.supersede("nonexistent", new) is False
 
-    def test_supersede_preserves_history(
-        self, service: MemoryService
-    ) -> None:
+    def test_supersede_preserves_history(self, service: MemoryService) -> None:
         """Decision evolution: old decisions are not lost."""
-        service.store(MemoryRecord(
-            key="d1", value="Use REST",
-            metadata={META_TYPE: "decision"},
-        ))
-        service.supersede("d1", MemoryRecord(
-            key="d2", value="Use GraphQL",
-            metadata={META_TYPE: "decision"},
-        ))
-        service.supersede("d2", MemoryRecord(
-            key="d3", value="Use tRPC",
-            metadata={META_TYPE: "decision"},
-        ))
+        service.store(
+            MemoryRecord(
+                key="d1",
+                value="Use REST",
+                metadata={META_TYPE: "decision"},
+            )
+        )
+        service.supersede(
+            "d1",
+            MemoryRecord(
+                key="d2",
+                value="Use GraphQL",
+                metadata={META_TYPE: "decision"},
+            ),
+        )
+        service.supersede(
+            "d2",
+            MemoryRecord(
+                key="d3",
+                value="Use tRPC",
+                metadata={META_TYPE: "decision"},
+            ),
+        )
         # All three exist in the database
-        all_decisions = service.retrieve(MemoryQuery(
-            memory_type="decision", limit=10
-        ))
+        all_decisions = service.retrieve(MemoryQuery(memory_type="decision", limit=10))
         # Only d3 is active (default filter not applied, so all returned)
-        active = [r for r in all_decisions
-                  if r.metadata.get(META_LIFECYCLE) == "active"]
+        active = [r for r in all_decisions if r.metadata.get(META_LIFECYCLE) == "active"]
         assert len(active) == 1
         assert active[0].key == "d3"
 
         # But superseded ones are still retrievable
-        superseded = [r for r in all_decisions
-                      if r.metadata.get(META_LIFECYCLE) == "superseded"]
+        superseded = [r for r in all_decisions if r.metadata.get(META_LIFECYCLE) == "superseded"]
         assert len(superseded) == 2
 
 
@@ -322,13 +363,17 @@ class TestSupersede:
 
 class TestContradictions:
     def test_detects_contradiction(self, service: MemoryService) -> None:
-        service.store(MemoryRecord(
-            key="p1", value="prefer local AI",
-            tags=["ai", "preference"],
-            metadata={META_TYPE: "preference"},
-        ))
+        service.store(
+            MemoryRecord(
+                key="p1",
+                value="prefer local AI",
+                tags=["ai", "preference"],
+                metadata={META_TYPE: "preference"},
+            )
+        )
         candidate = MemoryRecord(
-            key="p2", value="prefer cloud AI",
+            key="p2",
+            value="prefer cloud AI",
             tags=["ai", "preference"],
             metadata={META_TYPE: "preference"},
         )
@@ -336,46 +381,52 @@ class TestContradictions:
         assert len(contradictions) == 1
         assert contradictions[0].key == "p1"
 
-    def test_no_contradiction_different_types(
-        self, service: MemoryService
-    ) -> None:
-        service.store(MemoryRecord(
-            key="f1", value="local AI",
-            tags=["ai"],
-            metadata={META_TYPE: "fact"},
-        ))
+    def test_no_contradiction_different_types(self, service: MemoryService) -> None:
+        service.store(
+            MemoryRecord(
+                key="f1",
+                value="local AI",
+                tags=["ai"],
+                metadata={META_TYPE: "fact"},
+            )
+        )
         candidate = MemoryRecord(
-            key="p1", value="cloud AI",
+            key="p1",
+            value="cloud AI",
             tags=["ai"],
             metadata={META_TYPE: "preference"},
         )
         assert service.detect_contradictions(candidate) == []
 
-    def test_no_contradiction_same_value(
-        self, service: MemoryService
-    ) -> None:
-        service.store(MemoryRecord(
-            key="p1", value="prefer local AI",
-            tags=["ai"],
-            metadata={META_TYPE: "preference"},
-        ))
+    def test_no_contradiction_same_value(self, service: MemoryService) -> None:
+        service.store(
+            MemoryRecord(
+                key="p1",
+                value="prefer local AI",
+                tags=["ai"],
+                metadata={META_TYPE: "preference"},
+            )
+        )
         candidate = MemoryRecord(
-            key="p2", value="prefer local AI",
+            key="p2",
+            value="prefer local AI",
             tags=["ai"],
             metadata={META_TYPE: "preference"},
         )
         assert service.detect_contradictions(candidate) == []
 
-    def test_no_contradiction_no_tag_overlap(
-        self, service: MemoryService
-    ) -> None:
-        service.store(MemoryRecord(
-            key="p1", value="local",
-            tags=["ai"],
-            metadata={META_TYPE: "preference"},
-        ))
+    def test_no_contradiction_no_tag_overlap(self, service: MemoryService) -> None:
+        service.store(
+            MemoryRecord(
+                key="p1",
+                value="local",
+                tags=["ai"],
+                metadata={META_TYPE: "preference"},
+            )
+        )
         candidate = MemoryRecord(
-            key="p2", value="cloud",
+            key="p2",
+            value="cloud",
             tags=["database"],
             metadata={META_TYPE: "preference"},
         )
@@ -464,9 +515,9 @@ class TestRegexHelpers:
         assert not MemoryService.is_memory_request("what is Python?")
 
     def test_extract_memory_content(self) -> None:
-        assert MemoryService.extract_memory_content(
-            "remember that I like Python"
-        ) == "I like Python"
+        assert (
+            MemoryService.extract_memory_content("remember that I like Python") == "I like Python"
+        )
 
     def test_is_forget_request(self) -> None:
         assert MemoryService.is_forget_request("forget that I like Python")

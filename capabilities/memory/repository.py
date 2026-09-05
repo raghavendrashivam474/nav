@@ -1,4 +1,4 @@
-﻿"""Abstract storage boundary for memory persistence.
+"""Abstract storage boundary for memory persistence.
 
 The Core and Service layers depend on this interface, never on SQLite
 directly.  Swap in a different backend by implementing this ABC.
