@@ -1,13 +1,18 @@
-"""Investigation sub-package — S15.
+﻿"""Investigation sub-package — S15 + S16.
 
 Persistent research investigations that accumulate findings,
 evidence, and hypotheses across multiple research interactions.
+
+S16: Added ActivityType, InvestigationActivity, and the
+continuity sub-package for cross-session resumption.
 """
 
 from capabilities.research.investigation.models import (
+    ActivityType,
     Hypothesis,
     HypothesisStatus,
     Investigation,
+    InvestigationActivity,
     InvestigationQuery,
     InvestigationStatus,
 )
@@ -18,9 +23,11 @@ from capabilities.research.investigation.sqlite_repo import (
 )
 
 __all__ = [
+    "ActivityType",
     "Hypothesis",
     "HypothesisStatus",
     "Investigation",
+    "InvestigationActivity",
     "InvestigationQuery",
     "InvestigationStatus",
     "InvestigationRepository",
