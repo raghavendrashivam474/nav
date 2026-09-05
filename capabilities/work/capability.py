@@ -6,6 +6,8 @@ discovered and invoked through the Orchestrator / CapabilityRegistry.
 
 from __future__ import annotations
 
+from typing import Any
+
 from capabilities.work.service import WorkService
 from core.contracts.capability import Capability, Request, Response
 from core.log import get_logger
@@ -143,17 +145,32 @@ class WorkCapability(Capability):
                 success=False,
                 error=f"Work {work_id} not found",
             )
-        return Response(
-            request_id=request.request_id,
-            data={
-                "work_id": work.work_id,
-                "objective": work.objective,
-                "status": work.status.value,
-                "completed_steps": len(work.completed_steps()),
-                "pending_steps": len(work.pending_steps()),
-                "activity_count": len(work.activity_log),
-            },
-        )
+        data: dict[str, Any] = {
+            "work_id": work.work_id,
+            "objective": work.objective,
+            "status": work.status.value,
+            "completed_steps": len(work.completed_steps()),
+            "pending_steps": len(work.pending_steps()),
+            "activity_count": len(work.activity_log),
+        }
+        # S19: optional activity inclusion — additive, backward-compatible.
+        # When include_activity is absent or falsy the payload is identical
+        # to the S18 shape.  No existing caller is affected.
+        if request.payload.get("include_activity"):
+            limit = int(request.payload.get("activity_limit", 2))
+            recent = list(work.activity_log[-limit:]) if work.activity_log else []
+            recent.reverse()
+            data["recent_activity"] = [
+                {
+                    "timestamp": a.timestamp,
+                    "activity_type": a.activity_type.value,
+                    "description": a.description,
+                    "step_id": a.step_id,
+                    "metadata": dict(a.metadata),
+                }
+                for a in recent
+            ]
+        return Response(request_id=request.request_id, data=data)
 
     def _handle_pause(self, request: Request) -> Response:
         work_id = str(request.payload.get("work_id", ""))
@@ -193,8 +210,8 @@ class WorkCapability(Capability):
         steps_data = request.payload.get("steps", [])
         reason = str(request.payload.get("reason", ""))
 
-        # Reconstruct WorkStep items from payload
         from capabilities.work.sqlite_repo import _dict_to_step
+
         new_steps = [_dict_to_step(sd) for sd in steps_data]
 
         work = self._service.revise_plan(work_id, new_steps, reason=reason)
@@ -212,6 +229,7 @@ class WorkCapability(Capability):
         new_steps = None
         if steps_data is not None:
             from capabilities.work.sqlite_repo import _dict_to_step
+
             new_steps = [_dict_to_step(sd) for sd in steps_data]
 
         work = self._service.redirect_work(
@@ -229,9 +247,7 @@ class WorkCapability(Capability):
         work_id = str(request.payload.get("work_id", ""))
         step_id = str(request.payload.get("step_id", ""))
         modified_payload = request.payload.get("modified_payload")
-        work = self._service.approve_step(
-            work_id, step_id, modified_payload=modified_payload
-        )
+        work = self._service.approve_step(work_id, step_id, modified_payload=modified_payload)
         return Response(
             request_id=request.request_id,
             data={"work_id": work.work_id, "status": work.status.value},
