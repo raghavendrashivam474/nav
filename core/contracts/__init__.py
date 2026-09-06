@@ -2,7 +2,8 @@
 
 Exposes stable abstract base classes, dataclasses, protocols, and enums
 defining the boundaries between Core, Capabilities, AI infrastructure,
-Storage/Provider layers, Technical Intelligence/Work, and Security.
+Storage/Provider layers, Technical Intelligence/Work, Security,
+and Environment.
 """
 
 from core.contracts.ai import (
@@ -27,6 +28,17 @@ from core.contracts.context import (
     ResearchSessionContext,
     SessionContext,
     UserContext,
+)
+from core.contracts.environment import (
+    DEFAULT_ENVIRONMENT,
+    DeviceCapabilities,
+    DeviceIdentity,
+    DevicePlatform,
+    EnvironmentIdentity,
+    RuntimeDescriptor,
+    RuntimeIdentity,
+    RuntimeStatus,
+    StateOrigin,
 )
 from core.contracts.memory import (
     MemoryCapabilityInterface,
@@ -94,6 +106,16 @@ __all__ = [
     "AIMessage",
     "AIRequest",
     "AIResponse",
+    # Environment (S21)
+    "DEFAULT_ENVIRONMENT",
+    "DeviceCapabilities",
+    "DeviceIdentity",
+    "DevicePlatform",
+    "EnvironmentIdentity",
+    "RuntimeDescriptor",
+    "RuntimeIdentity",
+    "RuntimeStatus",
+    "StateOrigin",
     # Memory
     "MemoryCapabilityInterface",
     "MemoryQuery",
