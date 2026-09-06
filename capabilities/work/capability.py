@@ -131,6 +131,7 @@ class WorkCapability(Capability):
             data={
                 "work_id": work.work_id,
                 "status": work.status.value,
+            "current_step_id": work.current_step_id,
                 "completed": len(work.completed_steps()),
                 "pending": len(work.pending_steps()),
             },
@@ -149,6 +150,7 @@ class WorkCapability(Capability):
             "work_id": work.work_id,
             "objective": work.objective,
             "status": work.status.value,
+            "current_step_id": work.current_step_id,
             "completed_steps": len(work.completed_steps()),
             "pending_steps": len(work.pending_steps()),
             "activity_count": len(work.activity_log),
