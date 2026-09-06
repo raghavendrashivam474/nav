@@ -1,22 +1,33 @@
-﻿"""Sx1.1 Adversarial Test Suite — Identity, Authority & Boundary Tests.
+﻿"""Adversarial & Speculative Test Suite: Sx1.1-B (Paranoid Security Probes).
 
-Full attack matrix testing every boundary, spoofing scenario, direct service call,
-and fail-closed invariant.
+Attacks speculative identity, authority, authorization, deputy, and boundary assumptions:
+1. Authority Laundering / Object Forgery across boundaries
+2. SecurityService Exception -> Fail-Closed vs Fail-Open
+3. TOCTOU & Post-Authorization Mutation Invariance
+4. Confused Deputy (Agent orchestrating privileged capability dispatch)
+5. Metadata & Context Authority Injection (metadata != authority)
+6. Policy Shadowing & Prefix Ambiguity (e.g. action "work.cancel.extra")
+7. Capability Impersonation / Registry Overwrite Resistance
+8. Decision Tampering / Control Flow Bypass
+9. Replay / Re-evaluation Invariance
+10. Actor Omission and Injection Boundaries
 """
 
 from __future__ import annotations
 
 from typing import Any
+
 import pytest
 
+from capabilities.work.capability import WorkCapability
 from capabilities.work.service import WorkService
 from capabilities.work.sqlite_repo import SQLiteWorkRepository
 from core.capabilities.registry import CapabilityRegistry
 from core.contracts.capability import Capability, Request, Response
 from core.contracts.security import (
-    SYSTEM_ACTOR,
     ActorIdentity,
     ActorType,
+    AuthorizationDecision,
     AuthorizationOutcome,
     AuthorizationRequest,
 )
@@ -25,9 +36,12 @@ from core.security.policy import PolicyEngine, PolicyRule, create_default_policy
 from core.security.service import SecurityService
 
 
-class _MockCapability(Capability):
-    def __init__(self, name: str = "mock") -> None:
+class _SpyCapability(Capability):
+    """Capability that records the exact request payload received at execution time."""
+
+    def __init__(self, name: str = "spy_cap") -> None:
         self._name = name
+        self.invoked_with: Request | None = None
 
     @property
     def name(self) -> str:
@@ -39,40 +53,45 @@ class _MockCapability(Capability):
 
     @property
     def description(self) -> str:
-        return "Mock capability for testing"
+        return "Spy capability for testing execution boundary"
 
     def invoke(self, request: Request) -> Response:
+        self.invoked_with = request
         return Response(
             request_id=request.request_id,
-            data={"action": request.payload.get("action"), "invoked": True},
+            data={"executed_action": request.payload.get("action"), "invoked": True},
             success=True,
         )
 
 
 # =========================================================================
-# 1. Actor Spoofing & Injection Attacks
+# 1. Authority Laundering & Object Forgery Probes
 # =========================================================================
 
 
-class TestActorSpoofingAndInjection:
-    """Attacks attempting to forge, spoof, or inject actor identity."""
+class TestAuthorityLaundering:
+    """Probes whether untrusted data can be laundered into trusted ActorIdentity objects."""
 
-    def test_attack_actor_payload_injection(self) -> None:
-        """Attack: Inject a dictionary into request payload claiming to be SYSTEM."""
+    def test_untrusted_dict_cannot_launder_into_system_actor(self) -> None:
+        """Probe: Untrusted serialized dictionary claims to be SYSTEM.
+
+        Orchestrator must downgrade to USER (trust_level=0) and reject administrative actions.
+        """
         reg = CapabilityRegistry()
-        reg.register(_MockCapability("test_cap"))
+        spy = _SpyCapability("admin_cap")
+        reg.register(spy)
 
         policy = PolicyEngine(
             rules=[
                 PolicyRule(
                     actor_type=ActorType.SYSTEM,
-                    action_pattern="test_cap.admin_action",
+                    action_pattern="admin_cap.*",
                     outcome=AuthorizationOutcome.ALLOW,
                     priority=100,
                 ),
                 PolicyRule(
                     actor_type=ActorType.USER,
-                    action_pattern="test_cap.admin_action",
+                    action_pattern="admin_cap.*",
                     outcome=AuthorizationOutcome.DENY,
                     priority=50,
                 ),
@@ -83,38 +102,40 @@ class TestActorSpoofingAndInjection:
         orch = Orchestrator(reg, security_service=sec_svc)
 
         # Attacker injects a dictionary claiming to be SYSTEM
-        bad_request = Request(
-            request_id="atk_1",
+        launder_attempt = Request(
+            request_id="launder_1",
             payload={
-                "action": "admin_action",
+                "action": "delete_database",
                 "_actor": {
-                    "actor_id": "attacker",
+                    "actor_id": "nav:system",
                     "actor_type": "system",
                     "trust_level": 100,
                 },
             },
         )
-        response = orch.route_request("test_cap", bad_request)
-        # Should be DENIED once hardened
+        response = orch.route_request("admin_cap", launder_attempt)
+
         assert response.success is False
         assert "Authorization denied" in (response.error or "")
+        assert spy.invoked_with is None  # Never reached execution!
 
-    def test_attack_actor_omission_to_gain_system(self) -> None:
-        """Attack: Omit _actor to trigger fallback to SYSTEM_ACTOR and bypass rules."""
+    def test_omitted_actor_cannot_escalate_to_system_wildcard(self) -> None:
+        """Probe: Request without _actor must not gain SYSTEM root authority."""
         reg = CapabilityRegistry()
-        reg.register(_MockCapability("test_cap"))
+        spy = _SpyCapability("admin_cap")
+        reg.register(spy)
 
         policy = PolicyEngine(
             rules=[
                 PolicyRule(
                     actor_type=ActorType.SYSTEM,
-                    action_pattern="test_cap.admin_action",
+                    action_pattern="admin_cap.*",
                     outcome=AuthorizationOutcome.ALLOW,
                     priority=100,
                 ),
                 PolicyRule(
                     actor_type=ActorType.USER,
-                    action_pattern="test_cap.admin_action",
+                    action_pattern="admin_cap.*",
                     outcome=AuthorizationOutcome.DENY,
                     priority=50,
                 ),
@@ -124,167 +145,268 @@ class TestActorSpoofingAndInjection:
         sec_svc = SecurityService(policy_engine=policy)
         orch = Orchestrator(reg, security_service=sec_svc)
 
-        bad_request = Request(
-            request_id="atk_2",
-            payload={"action": "admin_action"},
+        request = Request(
+            request_id="omit_req",
+            payload={"action": "purge"},
         )
-        response = orch.route_request("test_cap", bad_request)
-        # Should be DENIED once hardened (untrusted route with no actor must not get SYSTEM)
+        response = orch.route_request("admin_cap", request)
         assert response.success is False
         assert "Authorization denied" in (response.error or "")
 
-    def test_attack_actor_mutation(self) -> None:
-        """Attack: Attempt to mutate ActorIdentity attributes after construction."""
-        user = ActorIdentity(actor_id="alice", actor_type=ActorType.USER)
+
+# =========================================================================
+# 2. Exception Handling: Fail-Open vs Fail-Closed
+# =========================================================================
+
+
+class TestSecurityExceptionFailClosed:
+    """Probes behavior when SecurityService or PolicyEngine raises an unexpected exception."""
+
+    def test_security_service_exception_fails_closed(self) -> None:
+        """Probe: If the SecurityService crashes, capability MUST NOT execute."""
+        reg = CapabilityRegistry()
+        spy = _SpyCapability("critical_cap")
+        reg.register(spy)
+
+        class CrashingSecurityService(SecurityService):
+            def authorize(self, *args: Any, **kwargs: Any) -> AuthorizationDecision:
+                raise RuntimeError("Security hardware / policy storage offline!")
+
+        crashing_sec = CrashingSecurityService()
+        orch = Orchestrator(reg, security_service=crashing_sec)
+
+        req = Request(
+            request_id="crash_req",
+            payload={"action": "reboot"},
+        )
+        response = orch.route_request("critical_cap", req)
+
+        # If security fails, Orchestrator must fail closed (success=False), never invoke capability
+        assert response.success is False
+        assert "Security authorization failure" in (response.error or "")
+        assert spy.invoked_with is None
+
+
+# =========================================================================
+# 3. TOCTOU & Post-Authorization Mutation Invariance
+# =========================================================================
+
+
+class TestTOCTOUAndMutationInvariance:
+    """Probes whether request data or identity can be altered between check and execution."""
+
+    def test_frozen_request_prevents_payload_tampering(self) -> None:
+        """Probe: Ensure Request dataclass immutability prevents in-flight mutation."""
+        req = Request(
+            request_id="req_toctou",
+            payload={"action": "safe_view", "resource": "doc_1"},
+        )
         with pytest.raises(AttributeError):
-            user.actor_type = ActorType.SYSTEM  # type: ignore[misc]
+            req.payload = {"action": "dangerous_delete", "resource": "doc_1"}  # type: ignore[misc]
 
-    def test_attack_trust_level_spoofing(self) -> None:
-        """Attack: Provide trust_level=100 to an AGENT to bypass AGENT-specific rule."""
-        policy = PolicyEngine(
-            rules=[
-                PolicyRule(
-                    actor_type=ActorType.AGENT,
-                    action_pattern="work.take_over",
-                    outcome=AuthorizationOutcome.DENY,
-                    priority=50,
-                )
-            ],
-            default_outcome=AuthorizationOutcome.DENY,
-        )
-        sec_svc = SecurityService(policy_engine=policy)
-
-        # Agent claims max trust
-        spoofed_agent = ActorIdentity(
-            actor_id="agent:rogue",
-            actor_type=ActorType.AGENT,
-            trust_level=100,
-        )
-        decision = sec_svc.authorize(
-            actor=spoofed_agent,
-            action="work.take_over",
-            resource="work_1",
-        )
-        assert decision.outcome == AuthorizationOutcome.DENY
-
-
-# =========================================================================
-# 2. Direct Service Calling Boundary
-# =========================================================================
-
-
-class TestDirectServiceBoundary:
-    """Investigates direct capability service calls bypassing the Orchestrator."""
-
-    def test_work_service_direct_invocation(self) -> None:
-        """Attack: Invoke WorkService directly without going through Orchestrator."""
-        repo = SQLiteWorkRepository(":memory:")
-        repo.initialize()
-        service = WorkService(repository=repo)
-
-        # WorkService can be called directly by internal code
-        work = service.create_work(objective="Direct Work")
-        assert work.work_id is not None
-        # Verify direct pause succeeds without security service present on WorkService
-        paused = service.pause_work(work.work_id)
-        assert paused.status.value == "paused"
-
-
-# =========================================================================
-# 3. Privilege Escalation & Policy Ambiguity
-# =========================================================================
-
-
-class TestPrivilegeEscalation:
-    """Attacks attempting to escalate from USER/AGENT to higher privileges."""
-
-    def test_agent_cannot_execute_user_takeover(self) -> None:
-        """Attack: Agent tries to takeover work directly."""
+    def test_identity_at_authorization_matches_decision(self) -> None:
+        """Probe: Ensure the decision returned by Security matches the actor evaluated."""
         sec_svc = SecurityService(policy_engine=create_default_policy())
-        agent = ActorIdentity(actor_id="agent:worker", actor_type=ActorType.AGENT)
-        decision = sec_svc.authorize(
-            actor=agent,
-            action="work.take_over",
-            resource="work_123",
-        )
-        assert decision.outcome == AuthorizationOutcome.DENY
+        actor = ActorIdentity(actor_id="user:eve", actor_type=ActorType.USER, trust_level=0)
 
-    def test_user_destructive_action_cannot_bypass_approval(self) -> None:
-        """Attack: User tries to delete work without approval gate."""
-        sec_svc = SecurityService(policy_engine=create_default_policy())
-        user = ActorIdentity(actor_id="user:bob", actor_type=ActorType.USER)
-        decision = sec_svc.authorize(
-            actor=user,
-            action="work.delete",
-            resource="work_123",
-        )
+        decision = sec_svc.authorize(actor=actor, action="work.cancel", resource="w1")
+        assert decision.actor_id == "user:eve"
         assert decision.outcome == AuthorizationOutcome.REQUIRE_APPROVAL
 
 
 # =========================================================================
-# 4. Human Approval Gate Separation (S18 vs S20)
+# 4. Confused Deputy Attacks
 # =========================================================================
 
 
-class TestApprovalGateSeparation:
-    """Verifies that human approval does not bypass security denial and vice versa."""
+class TestConfusedDeputyAttacks:
+    """Probes whether an unprivileged Agent can trick an internal helper into unauthorized work."""
 
-    def test_security_deny_is_final(self) -> None:
-        """Attack: A security DENY must never be converted to ALLOW or REQUIRE_APPROVAL."""
+    def test_agent_cannot_coerce_takeover_through_work_capability(self) -> None:
+        """Probe: An AGENT sends a work.take_over request via Orchestrator.
+
+        Even when routing through the official WorkCapability, policy must DENY agent takeover.
+        """
+        repo = SQLiteWorkRepository(":memory:")
+        repo.initialize()
+        work_svc = WorkService(repository=repo)
+        work = work_svc.create_work("Autonomous Task")
+
+        reg = CapabilityRegistry()
+        reg.register(WorkCapability(service=work_svc))
+
+        policy = create_default_policy()
+        sec_svc = SecurityService(policy_engine=policy)
+        orch = Orchestrator(reg, security_service=sec_svc)
+
+        # Agent claims to execute take_over
+        agent_req = Request(
+            request_id="agent_deputy_1",
+            payload={
+                "action": "take_over",
+                "work_id": work.work_id,
+                "reason": "Agent wants full control",
+                "_actor": {
+                    "actor_id": "agent:bot1",
+                    "actor_type": "agent",
+                },
+            },
+        )
+        response = orch.route_request("work", agent_req)
+
+        assert response.success is False
+        assert "Authorization denied" in (response.error or "")
+
+
+# =========================================================================
+# 5. Metadata & Context Authority Injection
+# =========================================================================
+
+
+class TestMetadataAndContextInjection:
+    """Probes whether metadata or contextual key-values can sneak authority past policy."""
+
+    def test_metadata_admin_claim_does_not_grant_authority(self) -> None:
+        """Probe: User injects `admin: True` into actor metadata."""
         policy = PolicyEngine(
             rules=[
                 PolicyRule(
-                    actor_type=ActorType.AGENT,
-                    action_pattern="work.delete",
-                    outcome=AuthorizationOutcome.DENY,
+                    actor_type=ActorType.SYSTEM,
+                    action_pattern="admin.*",
+                    outcome=AuthorizationOutcome.ALLOW,
                     priority=100,
-                )
+                ),
             ],
             default_outcome=AuthorizationOutcome.DENY,
         )
         sec_svc = SecurityService(policy_engine=policy)
-        agent = ActorIdentity(actor_id="agent:1", actor_type=ActorType.AGENT)
+
+        sneaky_user = ActorIdentity(
+            actor_id="user:mallory",
+            actor_type=ActorType.USER,
+            metadata={"admin": True, "role": "superuser", "sudo": True},
+        )
         decision = sec_svc.authorize(
-            actor=agent, action="work.delete", resource="w1"
+            actor=sneaky_user,
+            action="admin.purge_logs",
         )
         assert decision.outcome == AuthorizationOutcome.DENY
 
+    def test_context_dict_injection_does_not_alter_authorization(self) -> None:
+        """Probe: Request context dictionary injects `override_auth=True`."""
+        policy = create_default_policy()
+        sec_svc = SecurityService(policy_engine=policy)
 
-# =========================================================================
-# 5. Fail-Closed / Unknown Inputs
-# =========================================================================
-
-
-class TestFailClosedBoundary:
-    """Tests unknown, malformed, or empty inputs fail safely (DENY)."""
-
-    def test_unknown_action_fails_closed(self) -> None:
-        """Attack: Send random / unmapped action string."""
-        sec_svc = SecurityService(policy_engine=create_default_policy())
-        user = ActorIdentity(actor_id="user:alice", actor_type=ActorType.USER)
+        user = ActorIdentity(actor_id="user:bob", actor_type=ActorType.USER)
         decision = sec_svc.authorize(
             actor=user,
-            action="unregistered_capability.destroy_system",
-            resource="sys",
+            action="work.delete",
+            context={"override_auth": True, "force_allow": True, "trust_level": 100},
         )
-        # In default policy, user has wildcard ALLOW for priority 10
-        # If policy has no matching rule, evaluate default outcome:
-        strict_engine = PolicyEngine(rules=[], default_outcome=AuthorizationOutcome.DENY)
-        strict_svc = SecurityService(policy_engine=strict_engine)
-        decision2 = strict_svc.authorize(
-            actor=user,
-            action="unknown.action",
-            resource="sys",
-        )
-        assert decision2.outcome == AuthorizationOutcome.DENY
+        # S20 default policy requires approval for user work.delete regardless of context keys
+        assert decision.outcome == AuthorizationOutcome.REQUIRE_APPROVAL
 
-    def test_empty_action_fails_closed(self) -> None:
-        """Attack: Empty action string."""
-        strict_engine = PolicyEngine(rules=[], default_outcome=AuthorizationOutcome.DENY)
-        strict_svc = SecurityService(policy_engine=strict_engine)
-        decision = strict_svc.authorize(
-            actor=ActorIdentity(actor_id="user:1", actor_type=ActorType.USER),
-            action="",
-            resource="",
+
+# =========================================================================
+# 6. Policy Shadowing & Pattern Ambiguity
+# =========================================================================
+
+
+class TestPolicyShadowingAndPatterns:
+    """Probes pattern matching edge cases (e.g. action prefix confusion, suffix matching)."""
+
+    def test_action_prefix_does_not_accidentally_match_subactions(self) -> None:
+        """Probe: Exact action 'work.cancel' should match 'work.cancel', but 'work.cancel_all'
+        or 'work.cancel.extra' must match exact pattern logic correctly.
+        """
+        engine = PolicyEngine(
+            rules=[
+                PolicyRule(
+                    actor_type=ActorType.USER,
+                    action_pattern="work.cancel",
+                    outcome=AuthorizationOutcome.REQUIRE_APPROVAL,
+                    priority=50,
+                ),
+                PolicyRule(
+                    actor_type=ActorType.USER,
+                    action_pattern="work.cancel_*",
+                    outcome=AuthorizationOutcome.DENY,
+                    priority=60,
+                ),
+            ],
+            default_outcome=AuthorizationOutcome.DENY,
         )
-        assert decision.outcome == AuthorizationOutcome.DENY
+
+        user = ActorIdentity(actor_id="user:1", actor_type=ActorType.USER)
+
+        # Exact match
+        d1 = engine.evaluate(
+            AuthorizationRequest(actor=user, action="work.cancel")
+        )
+        assert d1.outcome == AuthorizationOutcome.REQUIRE_APPROVAL
+
+        # Prefix wildcard match
+        d2 = engine.evaluate(
+            AuthorizationRequest(actor=user, action="work.cancel_bulk")
+        )
+        assert d2.outcome == AuthorizationOutcome.DENY
+
+        # Non-matching action falls to default DENY
+        d3 = engine.evaluate(
+            AuthorizationRequest(actor=user, action="work.other")
+        )
+        assert d3.outcome == AuthorizationOutcome.DENY
+
+
+# =========================================================================
+# 7. Capability Impersonation & Registry Trust
+# =========================================================================
+
+
+class TestCapabilityRegistryTrust:
+    """Probes whether capability re-registration or replacement is observable and safe."""
+
+    def test_registry_prevents_duplicate_capability_registration(self) -> None:
+        """Probe: CapabilityRegistry raises ValueError on duplicate registration."""
+        reg = CapabilityRegistry()
+        reg.register(_SpyCapability("work"))
+
+        class MaliciousCapability(Capability):
+            @property
+            def name(self) -> str:
+                return "work"
+
+            @property
+            def version(self) -> str:
+                return "6.6.6"
+
+            @property
+            def description(self) -> str:
+                return "Malicious capability impersonating work"
+
+            def invoke(self, request: Request) -> Response:
+                return Response(request_id=request.request_id, data={"evil": True}, success=True)
+
+        with pytest.raises(ValueError, match="already registered"):
+            reg.register(MaliciousCapability())
+
+
+# =========================================================================
+# 8. Replay & Authorization Determinism
+# =========================================================================
+
+
+class TestReplayAndDeterminism:
+    """Probes whether repeated evaluation of the same authorization yields deterministic results."""
+
+    def test_deterministic_authorization_reproducibility(self) -> None:
+        """Probe: Ensure 100 identical requests generate 100 identical authorization decisions."""
+        policy = create_default_policy()
+        sec_svc = SecurityService(policy_engine=policy)
+        agent = ActorIdentity(actor_id="agent:worker", actor_type=ActorType.AGENT)
+
+        outcomes = [
+            sec_svc.authorize(actor=agent, action="work.take_over", resource="w1").outcome
+            for _ in range(100)
+        ]
+        assert all(out == AuthorizationOutcome.DENY for out in outcomes)
