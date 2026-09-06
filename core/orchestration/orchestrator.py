@@ -28,7 +28,7 @@ class Orchestrator:
     def route_request(
         self, target_capability: str, request: Request
     ) -> Response:
-        # S20: Authorization check before capability dispatch
+        # S20 / Sx1.1: Authorization check before capability dispatch
         if self._security_service is not None:
             from core.contracts.security import (
                 ActorIdentity,
@@ -36,20 +36,33 @@ class Orchestrator:
                 AuthorizationOutcome,
             )
 
-            # Extract actor from request payload if present
+            # Extract and sanitize actor from request payload
             actor_data = request.payload.get("_actor")
-            actor: ActorIdentity | None = None
-            if isinstance(actor_data, dict):
+            actor: ActorIdentity
+            if isinstance(actor_data, ActorIdentity):
+                actor = actor_data
+            elif isinstance(actor_data, dict):
+                raw_type = str(actor_data.get("actor_type", "user")).lower()
+                # Untrusted payload dicts cannot claim SYSTEM privileges directly
+                if raw_type == ActorType.SYSTEM.value:
+                    actor_type = ActorType.USER
+                else:
+                    try:
+                        actor_type = ActorType(raw_type)
+                    except ValueError:
+                        actor_type = ActorType.USER
+
                 actor = ActorIdentity(
-                    actor_id=str(
-                        actor_data.get("actor_id", "unknown")
-                    ),
-                    actor_type=ActorType(
-                        actor_data.get("actor_type", "user")
-                    ),
-                    trust_level=int(
-                        actor_data.get("trust_level", 0)
-                    ),
+                    actor_id=str(actor_data.get("actor_id", "anonymous")),
+                    actor_type=actor_type,
+                    trust_level=0,  # Unverified payload dicts cannot assert trust level
+                )
+            else:
+                # When omitted or invalid, default to standard unprivileged user actor
+                actor = ActorIdentity(
+                    actor_id="anonymous",
+                    actor_type=ActorType.USER,
+                    trust_level=0,
                 )
 
             action = (
