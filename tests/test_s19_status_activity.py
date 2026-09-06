@@ -50,7 +50,7 @@ class TestStatusActivityExtension(unittest.TestCase):
         )
         self.assertTrue(resp.success)
         expected_keys = {
-            "work_id", "objective", "status",
+            "work_id", "objective", "status", "current_step_id",
             "completed_steps", "pending_steps", "activity_count",
         }
         self.assertEqual(set(resp.data.keys()), expected_keys)
@@ -153,7 +153,7 @@ class TestStatusActivityExtension(unittest.TestCase):
             )
         )
         self.assertTrue(resp.success)
-        for key in ("work_id", "objective", "status",
+        for key in ("work_id", "objective", "status", "current_step_id",
                      "completed_steps", "pending_steps", "activity_count"):
             self.assertIn(key, resp.data)
 
@@ -181,3 +181,4 @@ class TestStatusActivityExtension(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
