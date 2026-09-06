@@ -34,7 +34,7 @@ class SmartGateway(AIGateway):
     def __init__(self) -> None:
         self._real_gateway: AIGateway | None = None
         try:
-            from ai.router import ModelRouter
+            from ai.router import ModelRouter  # type: ignore[import-not-found]
 
             self._real_gateway = ModelRouter()
         except Exception:
