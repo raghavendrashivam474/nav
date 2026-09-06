@@ -7,9 +7,13 @@ Covers:
 - Capability integration (§19: Capability integration tests)
 - Security boundary (§19: Security tests — structural)
 - Honesty invariants (§16: No fake research)
+- Live Wikipedia integration (§23.1: Actual network boundary)
+- Orchestrator capability dispatch (§23.1: Interface matching)
 """
 
 from __future__ import annotations
+
+from typing import Any
 
 import pytest
 
@@ -20,6 +24,7 @@ from capabilities.external_information.registry import ProviderRegistry
 from capabilities.external_information.static_provider import (
     StaticInformationProvider,
 )
+from capabilities.external_information.wikipedia_provider import WikipediaProvider
 from core.contracts.external_information import (
     ExternalInformationItem,
     ExternalInformationRequest,
@@ -290,3 +295,98 @@ class TestSecurityBoundary:
         assert "from core.security" not in source
         assert "authorize(" not in source
         assert "is_allowed(" not in source
+
+
+# ===================================================================
+# LIVE WIKIPEDIA INTEGRATION & ORCHESTRATOR DISPATCH TESTS (S23.1)
+# ===================================================================
+
+
+class TestLiveWikipediaProvider:
+    """S23.1: Actual network boundary tests using Wikipedia API."""
+
+    def setup_method(self) -> None:
+        self.provider = WikipediaProvider()
+
+    def test_live_retrieval_success(self) -> None:
+        """Verifies real internet lookup & provenance parsing."""
+        if not self.provider.is_available():
+            pytest.skip("Wikipedia API endpoint is currently unreachable (offline).")
+
+        req = ExternalInformationRequest(query="Artificial Intelligence", result_limit=2)
+        result = self.provider.retrieve(req)
+
+        # Integrity Validation
+        assert result.status == RetrievalStatus.SUCCESS
+        assert len(result.items) > 0
+        assert result.provider_id == "wikipedia-api-provider"
+
+        # Provenance Validation
+        item = result.items[0]
+        assert "Wikipedia: " in item.source.source_name
+        assert "wikipedia" in item.source.source_url.lower()
+        assert item.source.retrieved_at is not None
+        assert item.source.query_echo == "Artificial Intelligence"
+
+    def test_live_retrieval_no_results(self) -> None:
+        """Ensures non-existent query yields clean NO_RESULTS status."""
+        if not self.provider.is_available():
+            pytest.skip("Wikipedia API endpoint is currently unreachable (offline).")
+
+        req = ExternalInformationRequest(query="xyzqwerewt12349876", result_limit=1)
+        result = self.provider.retrieve(req)
+
+        assert result.status == RetrievalStatus.NO_RESULTS
+        assert len(result.items) == 0
+
+
+class TestOrchestratorCapabilityDispatch:
+    """
+    S23.1: Validates that capability matches Orchestrator registration
+    and dispatch signature without modifying Orchestrator semantics.
+    """
+
+    class MockOrchestrator:
+        """Represents the actual core/orchestration/orchestrator.py signature."""
+
+        def __init__(self) -> None:
+            self._capabilities: dict[str, Any] = {}
+
+        def register_capability(self, name: str, capability: Any) -> None:
+            self._capabilities[name] = capability
+
+        def execute_action(
+            self, actor_id: str, capability_name: str, action_data: dict[str, Any]
+        ) -> dict[str, Any]:
+            cap = self._capabilities.get(capability_name)
+            if not cap:
+                raise ValueError("Capability not registered")
+            return cap.execute(action_data)
+
+    def test_end_to_end_orchestration_dispatch_with_static_provider(self) -> None:
+        # 1. Initialize Registry and Capability
+        registry = ProviderRegistry()
+        registry.register(StaticInformationProvider(), set_default=True)
+        capability = ExternalInformationCapability(registry)
+
+        # 2. Register to Orchestrator
+        orchestrator = self.MockOrchestrator()
+        orchestrator.register_capability("external_information", capability)
+
+        # 3. Simulate Orchestrator Action Dispatch
+        action_packet = {
+            "query": "S23 status",
+            "result_limit": 1,
+            "request_id": "orchestrator-req-101",
+        }
+
+        response = orchestrator.execute_action("user-001", "external_information", action_packet)
+
+        # 4. Verify Dispatch output maps to S23 Core contracts
+        assert response["status"] == RetrievalStatus.SUCCESS.value
+        assert response["provider_id"] == "static-provider-v1"
+        assert response["request_id"] == "orchestrator-req-101"
+        assert len(response["items"]) == 1
+
+        content_match = "S23 implements the External Information Capability"
+        assert content_match in response["items"][0]["content"]
