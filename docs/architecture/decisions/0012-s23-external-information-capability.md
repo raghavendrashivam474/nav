@@ -160,7 +160,8 @@ a result after receipt.
 - `core/contracts/external_information.py`
 - `capabilities/external_information/provider_protocol.py`
 - `capabilities/external_information/registry.py`
-- `capabilities/external_information/static_provider.py`
+- `capabilities/external_information/static_provider.py
+- capabilities/external_information/wikipedia_provider.py`
 - `capabilities/external_information/capability.py`
 - `tests/test_s23_external_information.py`
 

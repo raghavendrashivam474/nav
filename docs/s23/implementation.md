@@ -58,3 +58,8 @@ This document logs the exact technical components created during S23.
 ## Integrity Protections
 - Strictly validates inputs to prevent processing malformed queries.
 - Throws clear exceptions if metadata integrity gets violated (e.g. success statuses carrying empty lists).
+
+
+## S23.1 Integration Additions
+- capabilities/external_information/wikipedia_provider.py: Live network provider using standard-library urllib.
+- Orchestrator Bridge: Added execute(action_data, context) to ExternalInformationCapability.
