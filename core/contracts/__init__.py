@@ -3,7 +3,7 @@
 Exposes stable abstract base classes, dataclasses, protocols, and enums
 defining the boundaries between Core, Capabilities, AI infrastructure,
 Storage/Provider layers, Technical Intelligence/Work, Security,
-and Environment.
+Environment, and Findings.
 """
 
 from core.contracts.ai import (
@@ -39,6 +39,10 @@ from core.contracts.environment import (
     RuntimeIdentity,
     RuntimeStatus,
     StateOrigin,
+)
+from core.contracts.finding import (
+    Finding,
+    FindingState,
 )
 from core.contracts.memory import (
     MemoryCapabilityInterface,
@@ -116,6 +120,9 @@ __all__ = [
     "RuntimeIdentity",
     "RuntimeStatus",
     "StateOrigin",
+    # Finding (S25)
+    "Finding",
+    "FindingState",
     # Memory
     "MemoryCapabilityInterface",
     "MemoryQuery",
