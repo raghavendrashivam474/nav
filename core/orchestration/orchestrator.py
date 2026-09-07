@@ -1,4 +1,4 @@
-﻿"""Orchestrator — capability dispatch with S20 / Sx1.2 security enforcement.
+"""Orchestrator — capability dispatch with S20 / Sx1.2 security enforcement.
 
 Routes requests to registered capabilities. When a SecurityService is
 configured, authorization is checked before dispatch.
@@ -28,12 +28,11 @@ class Orchestrator:
         self.registry = registry
         self._security_service = security_service
 
-    def route_request(
-        self, target_capability: str, request: Request
-    ) -> Response:
+    def route_request(self, target_capability: str, request: Request) -> Response:
         # S20 / Sx1.1 / Sx1.2: Authorization check and execution boundary enforcement
         if self._security_service is not None:
             from core.contracts.security import (
+                SYSTEM_ACTOR,
                 ActorIdentity,
                 ActorType,
                 AuthorizationOutcome,
@@ -47,7 +46,23 @@ class Orchestrator:
                 actor_data = sanitized_payload.get("_actor")
                 actor: ActorIdentity
                 if isinstance(actor_data, ActorIdentity):
-                    actor = actor_data
+                    # Sx1.3: Validate ActorIdentity objects (ATK-01/13)
+                    if actor_data is SYSTEM_ACTOR or actor_data == SYSTEM_ACTOR:
+                        actor = SYSTEM_ACTOR
+                    elif actor_data.actor_type == ActorType.SYSTEM:
+                        actor = ActorIdentity(
+                            actor_id=actor_data.actor_id,
+                            actor_type=ActorType.USER,
+                            trust_level=0,
+                            metadata=dict(actor_data.metadata),
+                        )
+                    else:
+                        actor = ActorIdentity(
+                            actor_id=actor_data.actor_id,
+                            actor_type=actor_data.actor_type,
+                            trust_level=0,
+                            metadata=dict(actor_data.metadata),
+                        )
                 elif isinstance(actor_data, dict):
                     raw_type = str(actor_data.get("actor_type", "user")).lower()
                     # Untrusted payload dicts cannot claim SYSTEM privileges directly
@@ -72,10 +87,7 @@ class Orchestrator:
                         trust_level=0,
                     )
 
-                action = (
-                    f"{target_capability}"
-                    f".{sanitized_payload.get('action', 'invoke')}"
-                )
+                action = f"{target_capability}.{sanitized_payload.get('action', 'invoke')}"
                 resource = str(
                     sanitized_payload.get(
                         "work_id",
@@ -102,10 +114,7 @@ class Orchestrator:
                             "reason": decision.reason,
                         },
                         success=False,
-                        error=(
-                            "Authorization denied: "
-                            f"{decision.reason}"
-                        ),
+                        error=(f"Authorization denied: {decision.reason}"),
                     )
 
                 if decision.outcome == AuthorizationOutcome.REQUIRE_APPROVAL:
