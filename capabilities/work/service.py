@@ -1,4 +1,4 @@
-﻿"""Work execution service — S17.
+﻿"""Work execution service — S17 / Sx1.2.
 
 Manages the full lifecycle of goal-directed work:
 creation, planning, step-by-step execution, bounded loops,
@@ -106,8 +106,22 @@ class WorkService:
         project_id: str | None = None,
         goal_id: str | None = None,
         investigation_id: str | None = None,
+        actor: Any = None,
     ) -> Work:
         now = datetime.now(timezone.utc).isoformat()
+        meta: dict[str, Any] = {}
+        if actor is not None:
+            from core.contracts.security import ActorIdentity
+            if isinstance(actor, ActorIdentity):
+                meta["initiating_actor"] = {
+                    "actor_id": actor.actor_id,
+                    "actor_type": actor.actor_type.value,
+                    "trust_level": actor.trust_level,
+                    "metadata": actor.metadata,
+                }
+            elif isinstance(actor, dict):
+                meta["initiating_actor"] = actor
+
         work = Work(
             work_id=f"work_{uuid.uuid4().hex[:12]}",
             objective=objective,
@@ -118,6 +132,7 @@ class WorkService:
             tags=tags,
             created_at=now,
             updated_at=now,
+            metadata=meta,
         )
         work = self._record_activity(
             work, WorkActivityType.WORK_CREATED, description=objective
@@ -250,8 +265,8 @@ class WorkService:
         )
         self._repo.update(work)
 
-        # Invoke capability via Orchestrator
-        response = self._invoke_capability(step)
+        # Invoke capability via Orchestrator with preserved caller authority (ATK-08)
+        response = self._invoke_capability(step, work)
 
         # Evaluate result
         new_status, error_msg = self._evaluator.evaluate_step(
@@ -300,7 +315,7 @@ class WorkService:
         self._repo.update(work)
         return work
 
-    def _invoke_capability(self, step: WorkStep) -> Response:
+    def _invoke_capability(self, step: WorkStep, work: Work | None = None) -> Response:
         if self._orchestrator is None:
             logger.warning("No orchestrator configured; returning mock success")
             return Response(
@@ -308,9 +323,25 @@ class WorkService:
                 data={"note": "No orchestrator; dry-run success"},
                 success=True,
             )
+
+        # Propagate initiating actor to prevent confused deputy context loss (ATK-08)
+        payload = dict(step.input_payload)
+        if work is not None and "initiating_actor" in work.metadata:
+            actor_data = work.metadata["initiating_actor"]
+            from core.contracts.security import ActorIdentity, ActorType
+            if isinstance(actor_data, dict):
+                payload["_actor"] = ActorIdentity(
+                    actor_id=actor_data.get("actor_id", "anonymous"),
+                    actor_type=ActorType(actor_data.get("actor_type", "user")),
+                    trust_level=actor_data.get("trust_level", 0),
+                    metadata=actor_data.get("metadata", {}),
+                )
+            else:
+                payload["_actor"] = actor_data
+
         request = Request(
             request_id=f"req_{uuid.uuid4().hex[:8]}",
-            payload=step.input_payload,
+            payload=payload,
         )
         return self._orchestrator.route_request(step.capability, request)
 

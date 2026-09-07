@@ -1,4 +1,4 @@
-﻿"""WorkCapability — S17.
+﻿"""WorkCapability — S17 / Sx1.2.
 
 Wraps WorkService as a standard NAV Capability so it can be
 discovered and invoked through the Orchestrator / CapabilityRegistry.
@@ -93,12 +93,14 @@ class WorkCapability(Capability):
                 error="Missing 'objective' in payload",
             )
         tags = tuple(request.payload.get("tags", []))
+        actor = request.payload.get("_security_actor") or request.payload.get("_actor")
         work = self._service.create_work(
             objective=objective,
             tags=tags,
             project_id=request.payload.get("project_id"),
             goal_id=request.payload.get("goal_id"),
             investigation_id=request.payload.get("investigation_id"),
+            actor=actor,
         )
         return Response(
             request_id=request.request_id,
@@ -131,7 +133,7 @@ class WorkCapability(Capability):
             data={
                 "work_id": work.work_id,
                 "status": work.status.value,
-            "current_step_id": work.current_step_id,
+                "current_step_id": work.current_step_id,
                 "completed": len(work.completed_steps()),
                 "pending": len(work.pending_steps()),
             },
@@ -155,9 +157,6 @@ class WorkCapability(Capability):
             "pending_steps": len(work.pending_steps()),
             "activity_count": len(work.activity_log),
         }
-        # S19: optional activity inclusion — additive, backward-compatible.
-        # When include_activity is absent or falsy the payload is identical
-        # to the S18 shape.  No existing caller is affected.
         if request.payload.get("include_activity"):
             limit = int(request.payload.get("activity_limit", 2))
             recent = list(work.activity_log[-limit:]) if work.activity_log else []

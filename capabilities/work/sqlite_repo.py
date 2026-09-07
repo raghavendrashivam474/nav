@@ -12,6 +12,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from capabilities.work.repository import WorkRepository
 from core.contracts.work import (
@@ -114,6 +115,15 @@ def _dict_to_activity(d: dict) -> WorkActivity:
     )
 
 
+def _json_default(obj: Any) -> Any:
+    if hasattr(obj, "value"):
+        return obj.value
+    from dataclasses import asdict, is_dataclass
+    if is_dataclass(obj) and not isinstance(obj, type):
+        return asdict(obj)
+    return str(obj)
+
+
 def _work_to_data_blob(w: Work) -> str:
     payload: dict = {
         "activity_log": [_activity_to_dict(a) for a in w.activity_log],
@@ -121,7 +131,7 @@ def _work_to_data_blob(w: Work) -> str:
     }
     if w.plan is not None:
         payload["plan"] = _plan_to_dict(w.plan)
-    return json.dumps(payload)
+    return json.dumps(payload, default=_json_default)
 
 
 def _data_blob_to_fields(blob: str) -> dict:
@@ -307,3 +317,5 @@ class SQLiteWorkRepository(WorkRepository):
         )
         conn.commit()
         return cursor.rowcount > 0
+
+
