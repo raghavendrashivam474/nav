@@ -1,4 +1,4 @@
-﻿"""Security contracts — S20: Identity & Security Plane.
+"""Security contracts — S20: Identity & Security Plane.
 
 Defines the core abstractions for identity, authorization, and security
 enforcement. These contracts are independent of the AI model, frontend,
@@ -13,9 +13,18 @@ Key principles:
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass, field
 from enum import Enum
+from types import MappingProxyType
 from typing import Any
+
+# Ensure copy.deepcopy works transparently with MappingProxyType across NAV
+_dispatch = getattr(copy, "_deepcopy_dispatch", None)
+if _dispatch is not None and MappingProxyType not in _dispatch:
+    _dispatch[MappingProxyType] = lambda x, memo: MappingProxyType(
+        copy.deepcopy(dict(x), memo)
+    )
 
 # ---------------------------------------------------------------------------
 # Identity
@@ -42,6 +51,11 @@ class ActorIdentity:
     actor_type: ActorType = ActorType.USER
     trust_level: int = 0
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        # Sx1.3: Freeze metadata to prevent post-creation mutation (ATK-04/07)
+        if not isinstance(self.metadata, MappingProxyType):
+            object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
 
 
 # Well-known system actor for backward compatibility.
