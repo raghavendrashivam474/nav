@@ -1,4 +1,4 @@
-﻿"""Work execution service — S17 / Sx1.2.
+"""Work execution service â€” S17 / Sx1.2.
 
 Manages the full lifecycle of goal-directed work:
 creation, planning, step-by-step execution, bounded loops,
@@ -112,12 +112,13 @@ class WorkService:
         meta: dict[str, Any] = {}
         if actor is not None:
             from core.contracts.security import ActorIdentity
+
             if isinstance(actor, ActorIdentity):
                 meta["initiating_actor"] = {
                     "actor_id": actor.actor_id,
                     "actor_type": actor.actor_type.value,
                     "trust_level": actor.trust_level,
-                    "metadata": actor.metadata,
+                    "metadata": dict(actor.metadata),
                 }
             elif isinstance(actor, dict):
                 meta["initiating_actor"] = actor
@@ -134,9 +135,7 @@ class WorkService:
             updated_at=now,
             metadata=meta,
         )
-        work = self._record_activity(
-            work, WorkActivityType.WORK_CREATED, description=objective
-        )
+        work = self._record_activity(work, WorkActivityType.WORK_CREATED, description=objective)
         self._repo.save(work)
         logger.info("Created work %s: %s", work.work_id, objective)
         return work
@@ -207,7 +206,8 @@ class WorkService:
         control = work.metadata.get("control", {})
         if control.get("pending"):
             work = self._transition(
-                work, WorkStatus.PAUSED,
+                work,
+                WorkStatus.PAUSED,
                 f"Intervention pending: {control.get('reason', 'unspecified')}",
             )
             return work
@@ -269,9 +269,7 @@ class WorkService:
         response = self._invoke_capability(step, work)
 
         # Evaluate result
-        new_status, error_msg = self._evaluator.evaluate_step(
-            step, response.data, response.success
-        )
+        new_status, error_msg = self._evaluator.evaluate_step(step, response.data, response.success)
 
         completed_at = datetime.now(timezone.utc).isoformat()
         final_step = replace(
@@ -294,7 +292,7 @@ class WorkService:
             work = self._record_activity(
                 work,
                 WorkActivityType.STEP_FAILED,
-                description=f"Failed: {step.name} — {error_msg}",
+                description=f"Failed: {step.name} â€” {error_msg}",
                 step_id=step.step_id,
             )
 
@@ -328,15 +326,29 @@ class WorkService:
         payload = dict(step.input_payload)
         if work is not None and "initiating_actor" in work.metadata:
             actor_data = work.metadata["initiating_actor"]
+            import json
+
             from core.contracts.security import ActorIdentity, ActorType
+
             if isinstance(actor_data, dict):
+                raw_meta = actor_data.get("metadata")
+                if isinstance(raw_meta, str):
+                    try:
+                        meta_dict = json.loads(raw_meta)
+                    except Exception:
+                        meta_dict = {}
+                elif isinstance(raw_meta, (dict, type(actor_data))):
+                    meta_dict = dict(raw_meta)
+                else:
+                    meta_dict = {}
+
                 payload["_actor"] = ActorIdentity(
-                    actor_id=actor_data.get("actor_id", "anonymous"),
+                    actor_id=str(actor_data.get("actor_id", "anonymous")),
                     actor_type=ActorType(actor_data.get("actor_type", "user")),
-                    trust_level=actor_data.get("trust_level", 0),
-                    metadata=actor_data.get("metadata", {}),
+                    trust_level=int(actor_data.get("trust_level", 0)),
+                    metadata=meta_dict,
                 )
-            else:
+            elif isinstance(actor_data, ActorIdentity):
                 payload["_actor"] = actor_data
 
         request = Request(
@@ -424,14 +436,14 @@ class WorkService:
     def pause_work(self, work_id: str) -> Work:
         work = self._require(work_id)
         if work.status in _TERMINAL:
-            raise WorkControlError(
-                f"Cannot pause terminal work ({work.status.value})"
-            )
+            raise WorkControlError(f"Cannot pause terminal work ({work.status.value})")
         if work.status == WorkStatus.PAUSED:
             return work  # idempotent
         work = self._transition(work, WorkStatus.PAUSED, "Paused by user")
         work = self._record_activity(
-            work, WorkActivityType.WORK_PAUSED, "Work paused by human",
+            work,
+            WorkActivityType.WORK_PAUSED,
+            "Work paused by human",
         )
         self._repo.update(work)
         return work
@@ -441,12 +453,12 @@ class WorkService:
         if work.status == WorkStatus.CANCELLED:
             return work  # idempotent
         if work.status in (WorkStatus.COMPLETED, WorkStatus.FAILED):
-            raise WorkControlError(
-                f"Cannot cancel {work.status.value} work"
-            )
+            raise WorkControlError(f"Cannot cancel {work.status.value} work")
         work = self._transition(work, WorkStatus.CANCELLED, "Cancelled by user")
         work = self._record_activity(
-            work, WorkActivityType.WORK_CANCELLED, "Work cancelled by human",
+            work,
+            WorkActivityType.WORK_CANCELLED,
+            "Work cancelled by human",
         )
         self._repo.update(work)
         return work
@@ -454,9 +466,7 @@ class WorkService:
     def resume_work(self, work_id: str) -> Work:
         work = self._require(work_id)
         if work.status != WorkStatus.PAUSED:
-            raise WorkControlError(
-                f"Cannot resume work in status {work.status.value}"
-            )
+            raise WorkControlError(f"Cannot resume work in status {work.status.value}")
         # Clear pending intervention
         meta = dict(work.metadata)
         control = dict(meta.get("control", {}))
@@ -470,7 +480,9 @@ class WorkService:
             target = WorkStatus.READY
         work = replace(work, status=target)
         work = self._record_activity(
-            work, WorkActivityType.WORK_RESUMED, "Work resumed by human",
+            work,
+            WorkActivityType.WORK_RESUMED,
+            "Work resumed by human",
         )
         self._repo.update(work)
         logger.info("Work %s resumed -> %s", work.work_id, target.value)
@@ -479,9 +491,7 @@ class WorkService:
     def request_intervention(self, work_id: str, reason: str = "") -> Work:
         work = self._require(work_id)
         if work.status in _TERMINAL:
-            raise WorkControlError(
-                f"Cannot intervene on terminal work ({work.status.value})"
-            )
+            raise WorkControlError(f"Cannot intervene on terminal work ({work.status.value})")
         meta = dict(work.metadata)
         control = dict(meta.get("control", {}))
         control["pending"] = True
@@ -505,15 +515,14 @@ class WorkService:
     ) -> Work:
         work = self._require(work_id)
         if work.status in _TERMINAL:
-            raise WorkControlError(
-                f"Cannot revise plan of terminal work ({work.status.value})"
-            )
+            raise WorkControlError(f"Cannot revise plan of terminal work ({work.status.value})")
         if work.plan is None:
             raise ValueError(f"Work {work_id} has no plan to revise")
 
         old_plan = work.plan
         immutable_old = [
-            s for s in old_plan.steps
+            s
+            for s in old_plan.steps
             if s.status in (StepStatus.COMPLETED, StepStatus.SKIPPED, StepStatus.RUNNING)
         ]
 
@@ -527,17 +536,11 @@ class WorkService:
                     f"Step at index {i} must be immutable step {old_step.step_id}"
                 )
             if new_step.status != old_step.status:
-                raise PlanRevisionError(
-                    f"Step {old_step.step_id} status cannot be mutated"
-                )
+                raise PlanRevisionError(f"Step {old_step.step_id} status cannot be mutated")
             if new_step.capability != old_step.capability:
-                raise PlanRevisionError(
-                    f"Step {old_step.step_id} capability cannot be mutated"
-                )
+                raise PlanRevisionError(f"Step {old_step.step_id} capability cannot be mutated")
             if new_step.input_payload != old_step.input_payload:
-                raise PlanRevisionError(
-                    f"Step {old_step.step_id} input payload cannot be mutated"
-                )
+                raise PlanRevisionError(f"Step {old_step.step_id} input payload cannot be mutated")
 
         # Snapshot old plan into history
         meta = dict(work.metadata)
@@ -545,6 +548,7 @@ class WorkService:
 
         # Serialize old plan to dict
         from capabilities.work.sqlite_repo import _plan_to_dict
+
         history.append(_plan_to_dict(old_plan))
         meta["plan_history"] = history
 
@@ -576,9 +580,7 @@ class WorkService:
             metadata={"version": revised_plan.version, "reason": reason},
         )
         self._repo.update(updated)
-        logger.info(
-            "Work %s plan revised to v%d", work_id, revised_plan.version
-        )
+        logger.info("Work %s plan revised to v%d", work_id, revised_plan.version)
         return updated
 
     def redirect_work(
@@ -590,9 +592,7 @@ class WorkService:
     ) -> Work:
         work = self._require(work_id)
         if work.status in _TERMINAL:
-            raise WorkControlError(
-                f"Cannot redirect terminal work ({work.status.value})"
-            )
+            raise WorkControlError(f"Cannot redirect terminal work ({work.status.value})")
 
         now = datetime.now(timezone.utc).isoformat()
         updated = work
@@ -828,17 +828,11 @@ class WorkService:
     def _check_executable(self, work: Work) -> None:
         """Raise WorkControlError if work cannot advance."""
         if work.status in _TERMINAL:
-            raise WorkControlError(
-                f"Work {work.work_id} is terminal ({work.status.value})"
-            )
+            raise WorkControlError(f"Work {work.work_id} is terminal ({work.status.value})")
         if work.status == WorkStatus.PAUSED:
-            raise WorkControlError(
-                f"Work {work.work_id} is paused — resume before executing"
-            )
+            raise WorkControlError(f"Work {work.work_id} is paused â€” resume before executing")
         if work.status in _WAITING:
-            raise WorkControlError(
-                f"Work {work.work_id} is waiting ({work.status.value})"
-            )
+            raise WorkControlError(f"Work {work.work_id} is waiting ({work.status.value})")
         if work.status not in (WorkStatus.READY, WorkStatus.RUNNING):
             raise WorkControlError(
                 f"Work {work.work_id} is not executable (status={work.status.value})"
@@ -865,8 +859,6 @@ class WorkService:
     def _replace_step(work: Work, step_id: str, new_step: WorkStep) -> Work:
         if work.plan is None:
             return work
-        new_steps = tuple(
-            new_step if s.step_id == step_id else s for s in work.plan.steps
-        )
+        new_steps = tuple(new_step if s.step_id == step_id else s for s in work.plan.steps)
         new_plan = replace(work.plan, steps=new_steps)
         return replace(work, plan=new_plan)

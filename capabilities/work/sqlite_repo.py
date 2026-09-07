@@ -1,4 +1,4 @@
-﻿"""SQLite-backed WorkRepository — S17.
+"""SQLite-backed WorkRepository — S17.
 
 Uses only the Python standard-library sqlite3 module.
 Complex nested objects (plan, steps, activity_log) are stored as a
@@ -116,9 +116,14 @@ def _dict_to_activity(d: dict) -> WorkActivity:
 
 
 def _json_default(obj: Any) -> Any:
+    from types import MappingProxyType
+
+    if isinstance(obj, MappingProxyType):
+        return dict(obj)
     if hasattr(obj, "value"):
         return obj.value
     from dataclasses import asdict, is_dataclass
+
     if is_dataclass(obj) and not isinstance(obj, type):
         return asdict(obj)
     return str(obj)
@@ -137,9 +142,7 @@ def _work_to_data_blob(w: Work) -> str:
 def _data_blob_to_fields(blob: str) -> dict:
     raw = json.loads(blob) if blob else {}
     fields: dict = {
-        "activity_log": tuple(
-            _dict_to_activity(a) for a in raw.get("activity_log", ())
-        ),
+        "activity_log": tuple(_dict_to_activity(a) for a in raw.get("activity_log", ())),
         "metadata": raw.get("metadata", {}),
     }
     if "plan" in raw:
@@ -240,9 +243,7 @@ class SQLiteWorkRepository(WorkRepository):
 
     def get(self, work_id: str) -> Work | None:
         conn = self._get_conn()
-        row = conn.execute(
-            "SELECT * FROM work WHERE work_id = ?", (work_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM work WHERE work_id = ?", (work_id,)).fetchone()
         if row is None:
             return None
         return _row_to_work(row)
@@ -312,10 +313,6 @@ class SQLiteWorkRepository(WorkRepository):
 
     def delete(self, work_id: str) -> bool:
         conn = self._get_conn()
-        cursor = conn.execute(
-            "DELETE FROM work WHERE work_id = ?", (work_id,)
-        )
+        cursor = conn.execute("DELETE FROM work WHERE work_id = ?", (work_id,))
         conn.commit()
         return cursor.rowcount > 0
-
-
