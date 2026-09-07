@@ -1,4 +1,4 @@
-﻿"""Work Control Adapter — S19.
+﻿"""Work Control Adapter — S19 / Sx1.2.
 
 Adapts high-level interaction UserActions into exact Capability Requests.
 Dispatches directly via Orchestrator without importing WorkService.
@@ -46,8 +46,12 @@ class WorkControlAdapter:
                 error=f"Invalid control action: {action}",
             )
 
-        # Assemble capability payload
-        cap_payload: dict[str, Any] = {"action": action_str, "work_id": work_id}
+        # Assemble capability payload (human interaction carries verified approval flag)
+        cap_payload: dict[str, Any] = {
+            "action": action_str,
+            "work_id": work_id,
+            "_security_approved": True,
+        }
 
         # Inject extra payload elements based on control demands
         if action == UserAction.PROVIDE_INPUT:

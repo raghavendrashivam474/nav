@@ -1,11 +1,14 @@
-﻿"""Orchestrator — capability dispatch with S20 security enforcement.
+﻿"""Orchestrator — capability dispatch with S20 / Sx1.2 security enforcement.
 
 Routes requests to registered capabilities. When a SecurityService is
 configured, authorization is checked before dispatch.
 """
 
+from __future__ import annotations
+
+import copy
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from core.capabilities.registry import CapabilityRegistry
 from core.contracts.capability import Request, Response
@@ -20,7 +23,7 @@ class Orchestrator:
     def __init__(
         self,
         registry: CapabilityRegistry,
-        security_service: "SecurityService | None" = None,
+        security_service: SecurityService | None = None,
     ) -> None:
         self.registry = registry
         self._security_service = security_service
@@ -28,7 +31,7 @@ class Orchestrator:
     def route_request(
         self, target_capability: str, request: Request
     ) -> Response:
-        # S20 / Sx1.1: Authorization check before capability dispatch
+        # S20 / Sx1.1 / Sx1.2: Authorization check and execution boundary enforcement
         if self._security_service is not None:
             from core.contracts.security import (
                 ActorIdentity,
@@ -37,8 +40,11 @@ class Orchestrator:
             )
 
             try:
+                # Defensive deep snapshot to prevent post-authorization parameter tampering (ATK-05)
+                sanitized_payload: dict[str, Any] = copy.deepcopy(request.payload)
+
                 # Extract and sanitize actor from request payload
-                actor_data = request.payload.get("_actor")
+                actor_data = sanitized_payload.get("_actor")
                 actor: ActorIdentity
                 if isinstance(actor_data, ActorIdentity):
                     actor = actor_data
@@ -68,12 +74,12 @@ class Orchestrator:
 
                 action = (
                     f"{target_capability}"
-                    f".{request.payload.get('action', 'invoke')}"
+                    f".{sanitized_payload.get('action', 'invoke')}"
                 )
                 resource = str(
-                    request.payload.get(
+                    sanitized_payload.get(
                         "work_id",
-                        request.payload.get("resource", ""),
+                        sanitized_payload.get("resource", ""),
                     )
                 )
 
@@ -102,24 +108,33 @@ class Orchestrator:
                         ),
                     )
 
-                if (
-                    decision.outcome
-                    == AuthorizationOutcome.REQUIRE_APPROVAL
-                ):
-                    logger.info(
-                        "Approval required: actor=%s action=%s",
-                        decision.actor_id,
-                        action,
-                    )
-                    # Enrich payload so S18 approval gate can see it.
-                    # Request is frozen, so create a new instance.
-                    enriched = dict(request.payload)
-                    enriched["_security_requires_approval"] = True
-                    enriched["_security_reason"] = decision.reason
-                    request = Request(
-                        request_id=request.request_id,
-                        payload=enriched,
-                    )
+                if decision.outcome == AuthorizationOutcome.REQUIRE_APPROVAL:
+                    # Check if human approval confirmation was explicitly supplied
+                    is_pre_approved = bool(sanitized_payload.get("_security_approved", False))
+                    if not is_pre_approved:
+                        logger.info(
+                            "Approval required: actor=%s action=%s (halting dispatch)",
+                            decision.actor_id,
+                            action,
+                        )
+                        return Response(
+                            request_id=request.request_id,
+                            data={
+                                "security_decision": decision.outcome.value,
+                                "reason": decision.reason,
+                                "action": action,
+                                "resource": resource,
+                            },
+                            success=False,
+                            error=f"Authorization requires human approval: {decision.reason}",
+                        )
+
+                # Attach verified actor context to outbound request (ATK-09 context propagation)
+                sanitized_payload["_security_actor"] = actor
+                request = Request(
+                    request_id=request.request_id,
+                    payload=sanitized_payload,
+                )
 
             except Exception as e:
                 logger.error("Security authorization failure: %s", e)

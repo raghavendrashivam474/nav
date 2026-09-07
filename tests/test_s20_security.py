@@ -516,10 +516,9 @@ class TestOrchestratorSecurity:
                 },
             ),
         )
-        assert resp.success is True
-        assert (
-            resp.data["echo"]["_security_requires_approval"] is True
-        )
+        assert resp.success is False
+        assert resp.data.get("security_decision") == AuthorizationOutcome.REQUIRE_APPROVAL.value
+        assert "Authorization requires human approval" in (resp.error or "")
 
 
 # =========================================================================
@@ -648,5 +647,6 @@ class TestBackwardCompatibility:
         d = svc.authorize(action="work.cancel", resource="w1")
         assert d.outcome == AuthorizationOutcome.ALLOW
         assert d.actor_id == "nav:system"
+
 
 

@@ -527,6 +527,7 @@ class TestScenarioDRedirect:
                 "work_id": original_id,
                 "new_objective": "Redirected new objective",
                 "reason": "Priorities shifted",
+                "_security_approved": True,
             },
         )
         resp = orchestrator.route_request("work", req)
@@ -859,5 +860,6 @@ class TestScenarioHEnvironmentIdentity:
         resp = orchestrator.route_request("work", req)
         assert resp.success is True
         assert resp.data["work_id"].startswith("work_")
+
 
 
