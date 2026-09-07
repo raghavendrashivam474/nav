@@ -1,4 +1,4 @@
-﻿"""Investigation service layer — S15 + S16.
+"""Investigation service layer — S15 + S16.
 
 Manages the lifecycle of persistent research investigations.
 Composes with the existing ResearchService to execute research

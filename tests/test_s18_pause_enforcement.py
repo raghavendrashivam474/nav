@@ -31,9 +31,7 @@ class _EchoCap(Capability):
         return "echo"
 
     def invoke(self, request: Request) -> Response:
-        return Response(
-            request_id=request.request_id, data={"ok": True}, success=True
-        )
+        return Response(request_id=request.request_id, data={"ok": True}, success=True)
 
 
 @pytest.fixture()

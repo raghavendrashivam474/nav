@@ -1,4 +1,4 @@
-﻿"""Interaction contracts — S19.
+"""Interaction contracts — S19.
 
 Defines the types and structures for the human interaction layer.
 Allows text and voice interfaces to communicate uniformly with NAV Core.

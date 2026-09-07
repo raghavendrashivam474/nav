@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 
 from core.contracts.work import WorkStatus
 from interfaces.interaction.contracts import NAVInteractionState

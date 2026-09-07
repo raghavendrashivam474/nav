@@ -1,4 +1,4 @@
-﻿"""Environment contracts — S21: Multi-device Foundation.
+"""Environment contracts — S21: Multi-device Foundation.
 
 Defines the core abstractions for NAV environment, device, and runtime
 identity. These contracts establish the foundation for NAV to operate

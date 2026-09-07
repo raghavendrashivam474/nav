@@ -1,4 +1,4 @@
-﻿"""
+"""
 NAV v2 — S24: Evidence Factory.
 
 Transforms S23 ExternalInformationResult into S24 Evidence representations.
@@ -48,9 +48,7 @@ class EvidenceFactory:
             )
 
         if not result.has_items:
-            raise ValueError(
-                "Cannot create evidence from a result with no items."
-            )
+            raise ValueError("Cannot create evidence from a result with no items.")
 
         # Enforce S23 honesty invariant before creating evidence
         result.assert_honest()

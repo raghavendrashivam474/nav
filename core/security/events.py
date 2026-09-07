@@ -1,4 +1,4 @@
-﻿"""Security event log — S20.
+"""Security event log — S20.
 
 Provides operational traceability for security decisions.
 """
@@ -24,9 +24,7 @@ class SecurityEventLog:
         if len(self._events) > self._max_events:
             self._events = self._events[-self._max_events :]
 
-    def get_events(
-        self, limit: int = 100, event_type: str | None = None
-    ) -> list[SecurityEvent]:
+    def get_events(self, limit: int = 100, event_type: str | None = None) -> list[SecurityEvent]:
         events = self._events
         if event_type:
             events = [e for e in events if e.event_type.value == event_type]

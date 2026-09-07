@@ -1,4 +1,4 @@
-﻿"""S18 Phase 4-5: Plan Revision and Redirection tests."""
+"""S18 Phase 4-5: Plan Revision and Redirection tests."""
 
 from __future__ import annotations
 
@@ -31,9 +31,7 @@ class _EchoCap(Capability):
         return "echo"
 
     def invoke(self, request: Request) -> Response:
-        return Response(
-            request_id=request.request_id, data={"ok": True}, success=True
-        )
+        return Response(request_id=request.request_id, data={"ok": True}, success=True)
 
 
 @pytest.fixture()

@@ -1,4 +1,4 @@
-﻿"""Core contracts for NAV.
+"""Core contracts for NAV.
 
 Exposes stable abstract base classes, dataclasses, protocols, and enums
 defining the boundaries between Core, Capabilities, AI infrastructure,

@@ -1,4 +1,4 @@
-﻿"""WorkCapability — S17 / Sx1.2.
+"""WorkCapability — S17 / Sx1.2.
 
 Wraps WorkService as a standard NAV Capability so it can be
 discovered and invoked through the Orchestrator / CapabilityRegistry.

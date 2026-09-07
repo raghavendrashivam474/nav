@@ -1,4 +1,4 @@
-﻿"""Security service — S20.
+"""Security service — S20.
 
 Central authorization service that evaluates requests against policy
 and records security events for observability.
@@ -68,18 +68,14 @@ class SecurityService:
             context=context or {},
         )
 
-        self._record_event(
-            SecurityEventType.AUTHORIZATION_REQUESTED, request
-        )
+        self._record_event(SecurityEventType.AUTHORIZATION_REQUESTED, request)
 
         decision = self._policy.evaluate(request)
 
         event_type = {
             AuthorizationOutcome.ALLOW: SecurityEventType.AUTHORIZATION_GRANTED,
             AuthorizationOutcome.DENY: SecurityEventType.AUTHORIZATION_DENIED,
-            AuthorizationOutcome.REQUIRE_APPROVAL: (
-                SecurityEventType.APPROVAL_REQUIRED
-            ),
+            AuthorizationOutcome.REQUIRE_APPROVAL: (SecurityEventType.APPROVAL_REQUIRED),
         }[decision.outcome]
 
         self._record_event(event_type, request, decision)
@@ -95,9 +91,7 @@ class SecurityService:
 
         return decision
 
-    def authorize_request(
-        self, request: AuthorizationRequest
-    ) -> AuthorizationDecision:
+    def authorize_request(self, request: AuthorizationRequest) -> AuthorizationDecision:
         """Evaluate a pre-constructed authorization request."""
         return self.authorize(
             actor=request.actor,

@@ -1,4 +1,4 @@
-﻿"""S22 Integration & Real-world Validation Scenarios.
+"""S22 Integration & Real-world Validation Scenarios.
 
 Validates the complete NAV v1 architecture across all subsystems:
 Interaction -> Orchestrator -> Security -> Work -> Human Control -> Presence -> Environment
@@ -860,6 +860,3 @@ class TestScenarioHEnvironmentIdentity:
         resp = orchestrator.route_request("work", req)
         assert resp.success is True
         assert resp.data["work_id"].startswith("work_")
-
-
-

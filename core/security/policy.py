@@ -1,4 +1,4 @@
-﻿"""Deterministic policy engine — S20.
+"""Deterministic policy engine — S20.
 
 Evaluates authorization requests against a set of explicit rules.
 No LLM involvement. No prompt-based security. Pure deterministic logic.
@@ -43,9 +43,7 @@ class PolicyEngine:
         rules: list[PolicyRule] | None = None,
         default_outcome: AuthorizationOutcome = AuthorizationOutcome.DENY,
     ) -> None:
-        self._rules: list[PolicyRule] = sorted(
-            rules or [], key=lambda r: r.priority, reverse=True
-        )
+        self._rules: list[PolicyRule] = sorted(rules or [], key=lambda r: r.priority, reverse=True)
         self._default_outcome = default_outcome
 
     def add_rule(self, rule: PolicyRule) -> None:
@@ -75,18 +73,11 @@ class PolicyEngine:
 
     @staticmethod
     def _matches(rule: PolicyRule, request: AuthorizationRequest) -> bool:
-        if (
-            rule.actor_type is not None
-            and rule.actor_type != request.actor.actor_type
-        ):
+        if rule.actor_type is not None and rule.actor_type != request.actor.actor_type:
             return False
-        if rule.action_pattern and not _pattern_matches(
-            rule.action_pattern, request.action
-        ):
+        if rule.action_pattern and not _pattern_matches(rule.action_pattern, request.action):
             return False
-        if rule.resource_pattern and not _pattern_matches(
-            rule.resource_pattern, request.resource
-        ):
+        if rule.resource_pattern and not _pattern_matches(rule.resource_pattern, request.resource):
             return False
         return True
 

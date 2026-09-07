@@ -1,4 +1,4 @@
-﻿"""Interaction Voice Adapter — S19.
+"""Interaction Voice Adapter — S19.
 
 Adapts raw Audio I/O streams directly to and from S19 Interaction boundaries.
 Provides standard voice support without breaking legacy S4 VoiceInterface pathways.

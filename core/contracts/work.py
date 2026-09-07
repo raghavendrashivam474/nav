@@ -1,4 +1,4 @@
-﻿"""Work contracts — S17: Technical Intelligence & Agentic Workflows.
+"""Work contracts — S17: Technical Intelligence & Agentic Workflows.
 
 Defines the core abstractions for goal-directed work, execution planning,
 step execution, status tracking, bounded execution loops, and activity logs.

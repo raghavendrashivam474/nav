@@ -1,4 +1,4 @@
-﻿"""Work capability — S17: Technical Intelligence & Agentic Workflows.
+"""Work capability — S17: Technical Intelligence & Agentic Workflows.
 
 Provides goal-directed, bounded, multi-step work execution built on
 existing NAV capabilities (Research, Memory, Cognition) via the

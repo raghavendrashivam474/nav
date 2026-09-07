@@ -1,4 +1,4 @@
-﻿"""Work Control Adapter — S19 / Sx1.2.
+"""Work Control Adapter — S19 / Sx1.2.
 
 Adapts high-level interaction UserActions into exact Capability Requests.
 Dispatches directly via Orchestrator without importing WorkService.

@@ -1,4 +1,4 @@
-﻿"""Identity generation helpers — S21.
+"""Identity generation helpers — S21.
 
 Provides deterministic identity creation for environments, devices,
 and runtimes. Uses UUID4 for uniqueness by default.

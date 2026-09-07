@@ -1,4 +1,4 @@
-﻿"""Adversarial & Speculative Test Suite: Sx1.1-B (Paranoid Security Probes).
+"""Adversarial & Speculative Test Suite: Sx1.1-B (Paranoid Security Probes).
 
 Attacks speculative identity, authority, authorization, deputy, and boundary assumptions:
 1. Authority Laundering / Object Forgery across boundaries
@@ -340,21 +340,15 @@ class TestPolicyShadowingAndPatterns:
         user = ActorIdentity(actor_id="user:1", actor_type=ActorType.USER)
 
         # Exact match
-        d1 = engine.evaluate(
-            AuthorizationRequest(actor=user, action="work.cancel")
-        )
+        d1 = engine.evaluate(AuthorizationRequest(actor=user, action="work.cancel"))
         assert d1.outcome == AuthorizationOutcome.REQUIRE_APPROVAL
 
         # Prefix wildcard match
-        d2 = engine.evaluate(
-            AuthorizationRequest(actor=user, action="work.cancel_bulk")
-        )
+        d2 = engine.evaluate(AuthorizationRequest(actor=user, action="work.cancel_bulk"))
         assert d2.outcome == AuthorizationOutcome.DENY
 
         # Non-matching action falls to default DENY
-        d3 = engine.evaluate(
-            AuthorizationRequest(actor=user, action="work.other")
-        )
+        d3 = engine.evaluate(AuthorizationRequest(actor=user, action="work.other"))
         assert d3.outcome == AuthorizationOutcome.DENY
 
 

@@ -1,4 +1,4 @@
-﻿"""Planning subsystem — S17.
+"""Planning subsystem — S17.
 
 Provides deterministic and AI-assisted plan generation.
 
@@ -150,9 +150,7 @@ class AIPlanner:
     plan if the AI output is malformed or unavailable.
     """
 
-    def __init__(
-        self, gateway: AIGateway, fallback: DeterministicPlanner | None = None
-    ) -> None:
+    def __init__(self, gateway: AIGateway, fallback: DeterministicPlanner | None = None) -> None:
         self._gateway = gateway
         self._fallback = fallback or DeterministicPlanner()
 
@@ -219,11 +217,7 @@ class AIPlanner:
             if capability not in ("research", "cognition", "memory"):
                 capability = "cognition"
 
-            payload = (
-                s.get("input_payload", {})
-                if isinstance(s.get("input_payload"), dict)
-                else {}
-            )
+            payload = s.get("input_payload", {}) if isinstance(s.get("input_payload"), dict) else {}
 
             steps.append(
                 WorkStep(

@@ -1,4 +1,4 @@
-﻿"""SQLite-backed InvestigationRepository — S15 + S16.
+"""SQLite-backed InvestigationRepository — S15 + S16.
 
 Uses only the Python standard-library sqlite3 module.
 Complex nested objects (findings, sources, evidence, hypotheses,
@@ -179,9 +179,7 @@ def _data_blob_to_fields(blob: str) -> dict:
         "evidence": tuple(_dict_to_evidence(e) for e in raw.get("evidence", ())),
         "open_questions": tuple(raw.get("open_questions", ())),
         "metadata": raw.get("metadata", {}),
-        "activity_log": tuple(
-            _dict_to_activity(a) for a in raw.get("activity_log", ())
-        ),
+        "activity_log": tuple(_dict_to_activity(a) for a in raw.get("activity_log", ())),
     }
 
 

@@ -1,4 +1,4 @@
-﻿"""S19: Prove the additive include_activity extension to WorkCapability.status.
+"""S19: Prove the additive include_activity extension to WorkCapability.status.
 
 Two guarantees:
 1. Legacy callers (no include_activity) get the exact S18 payload shape.
@@ -50,8 +50,13 @@ class TestStatusActivityExtension(unittest.TestCase):
         )
         self.assertTrue(resp.success)
         expected_keys = {
-            "work_id", "objective", "status", "current_step_id",
-            "completed_steps", "pending_steps", "activity_count",
+            "work_id",
+            "objective",
+            "status",
+            "current_step_id",
+            "completed_steps",
+            "pending_steps",
+            "activity_count",
         }
         self.assertEqual(set(resp.data.keys()), expected_keys)
         self.assertNotIn("recent_activity", resp.data)
@@ -97,9 +102,7 @@ class TestStatusActivityExtension(unittest.TestCase):
         """activity_limit caps the number of returned entries."""
         wid = self._create_work()
         # Plan + execute to generate more activity
-        self.cap.invoke(
-            Request(request_id="p1", payload={"action": "plan", "work_id": wid})
-        )
+        self.cap.invoke(Request(request_id="p1", payload={"action": "plan", "work_id": wid}))
         resp = self.cap.invoke(
             Request(
                 request_id="s4",
@@ -117,9 +120,7 @@ class TestStatusActivityExtension(unittest.TestCase):
     def test_include_activity_newest_first(self) -> None:
         """Returned activities are in reverse-chronological order."""
         wid = self._create_work()
-        self.cap.invoke(
-            Request(request_id="p1", payload={"action": "plan", "work_id": wid})
-        )
+        self.cap.invoke(Request(request_id="p1", payload={"action": "plan", "work_id": wid}))
         resp = self.cap.invoke(
             Request(
                 request_id="s5",
@@ -153,8 +154,15 @@ class TestStatusActivityExtension(unittest.TestCase):
             )
         )
         self.assertTrue(resp.success)
-        for key in ("work_id", "objective", "status", "current_step_id",
-                     "completed_steps", "pending_steps", "activity_count"):
+        for key in (
+            "work_id",
+            "objective",
+            "status",
+            "current_step_id",
+            "completed_steps",
+            "pending_steps",
+            "activity_count",
+        ):
             self.assertIn(key, resp.data)
 
     # ------------------------------------------------------------------
@@ -181,4 +189,3 @@ class TestStatusActivityExtension(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

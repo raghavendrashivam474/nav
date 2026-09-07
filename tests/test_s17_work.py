@@ -1,4 +1,4 @@
-﻿"""Comprehensive test suite for S17: Technical Intelligence & Agentic Workflows.
+"""Comprehensive test suite for S17: Technical Intelligence & Agentic Workflows.
 
 Covers:
 - Model immutability and helpers
@@ -124,9 +124,7 @@ def failing_orchestrator() -> Orchestrator:
 
 
 @pytest.fixture()
-def work_service(
-    work_repo: SQLiteWorkRepository, orchestrator: Orchestrator
-) -> WorkService:
+def work_service(work_repo: SQLiteWorkRepository, orchestrator: Orchestrator) -> WorkService:
     return WorkService(
         repository=work_repo,
         orchestrator=orchestrator,
@@ -366,24 +364,26 @@ class TestPlanner:
         class _MockGateway(AIGateway):
             def generate(self, request: AIRequest) -> AIResponse:
                 return AIResponse(
-                    content=json.dumps({
-                        "steps": [
-                            {
-                                "name": "S1",
-                                "description": "D1",
-                                "capability": "research",
-                                "input_payload": {},
-                                "dependencies": [],
-                            },
-                            {
-                                "name": "S2",
-                                "description": "D2",
-                                "capability": "cognition",
-                                "input_payload": {},
-                                "dependencies": [0],
-                            },
-                        ]
-                    }),
+                    content=json.dumps(
+                        {
+                            "steps": [
+                                {
+                                    "name": "S1",
+                                    "description": "D1",
+                                    "capability": "research",
+                                    "input_payload": {},
+                                    "dependencies": [],
+                                },
+                                {
+                                    "name": "S2",
+                                    "description": "D2",
+                                    "capability": "cognition",
+                                    "input_payload": {},
+                                    "dependencies": [0],
+                                },
+                            ]
+                        }
+                    ),
                     model_used="mock",
                 )
 
@@ -405,17 +405,19 @@ class TestPlanner:
         class _MockGateway(AIGateway):
             def generate(self, request: AIRequest) -> AIResponse:
                 return AIResponse(
-                    content=json.dumps({
-                        "steps": [
-                            {
-                                "name": "S1",
-                                "description": "D1",
-                                "capability": "hacking",
-                                "input_payload": {},
-                                "dependencies": [],
-                            },
-                        ]
-                    }),
+                    content=json.dumps(
+                        {
+                            "steps": [
+                                {
+                                    "name": "S1",
+                                    "description": "D1",
+                                    "capability": "hacking",
+                                    "input_payload": {},
+                                    "dependencies": [],
+                                },
+                            ]
+                        }
+                    ),
                     model_used="mock",
                 )
 
@@ -605,9 +607,7 @@ class TestContextIntegration:
             session=SessionContext(session_id="s1"),
             conversation=ConversationContext(conversation_id="c1"),
             personal_context=PersonalContext(
-                current_focus=CurrentFocus(
-                    project_id="p1", goal_id="g1", topic="databases"
-                ),
+                current_focus=CurrentFocus(project_id="p1", goal_id="g1", topic="databases"),
             ),
         )
         work = work_service.create_from_context(ctx, "Evaluate DB options")

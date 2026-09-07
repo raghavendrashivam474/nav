@@ -276,7 +276,7 @@ Finding(
     supporting_evidence=("ev-a", "ev-b"),
     contradicting_evidence=("ev-c"),
     uncertainty="Evidence contains 2 supporting and 1 contradicting items. "
-                "The conflict remains unresolved.",
+    "The conflict remains unresolved.",
 )
 ```
 

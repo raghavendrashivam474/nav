@@ -1,4 +1,4 @@
-﻿"""Presence contracts — S19.
+"""Presence contracts — S19.
 
 Defines the system visual state models and rendering protocols.
 """

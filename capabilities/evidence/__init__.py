@@ -1,4 +1,4 @@
-﻿"""
+"""
 NAV v2 — S24/S25: Evidence Subsystem.
 
 Provides evidence representation, evaluation, traceability, and synthesis

@@ -1,4 +1,4 @@
-﻿"""State mapping — S19.
+"""State mapping — S19.
 
 Maps raw backend statuses into user-comprehensible interaction states.
 Follows the spec mapping strictly.

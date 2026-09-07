@@ -1,4 +1,4 @@
-﻿"""Interaction Layer Boundary — S19.
+"""Interaction Layer Boundary — S19.
 
 Exposes the primary high-level API. Orchestrates commands, focus resolution,
 cognition dispatching, control adaptations, state/activity mappings, and outputs.

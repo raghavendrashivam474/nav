@@ -1,4 +1,4 @@
-﻿"""Deterministic Command Interpreter — S19.
+"""Deterministic Command Interpreter — S19.
 
 Maps standardized voice/text commands directly to control actions.
 Unrecognized input drops back to SEND_MESSAGE (standard conversational flow).

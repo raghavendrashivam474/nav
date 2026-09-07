@@ -1,4 +1,4 @@
-﻿"""S21: Multi-device Foundation.
+"""S21: Multi-device Foundation.
 
 Provides environment, device, and runtime identity management
 for NAV's multi-device architecture foundation.

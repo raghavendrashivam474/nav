@@ -1,4 +1,4 @@
-﻿"""Presence state derivation — S19.
+"""Presence state derivation — S19.
 
 Converts derived NAVInteractionState to visual PresenceState.
 Guarantees clean flow separations.

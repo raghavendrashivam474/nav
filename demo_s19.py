@@ -1,4 +1,4 @@
-﻿"""NAV S19 Interactive Voice & Presence Model Demo.
+"""NAV S19 Interactive Voice & Presence Model Demo.
 
 Integrates the full S19 stack: Unified Interaction Layer, Presence mappings,
 ASCII Presence Renderer, and optional Voice capture adapter.

@@ -1,4 +1,4 @@
-﻿"""Terminal Presence Renderer — S19.
+"""Terminal Presence Renderer — S19.
 
 A purely synthetic, non-photorealistic ASCII terminal presence renderer.
 Builds recognizable shapes communicating state, isolated from core mechanics.

@@ -1,4 +1,4 @@
-﻿"""
+"""
 NAV v2 — S24: Evidence Service.
 
 Facade combining factory, evaluator, relation detector, and store.
@@ -48,9 +48,7 @@ class EvidenceService:
     # Ingestion (S23 → S24 boundary)
     # ------------------------------------------------------------------
 
-    def ingest_result(
-        self, result: ExternalInformationResult
-    ) -> list[Evidence]:
+    def ingest_result(self, result: ExternalInformationResult) -> list[Evidence]:
         """
         Transform a successful S23 result into stored Evidence items.
 
@@ -104,9 +102,7 @@ class EvidenceService:
         evaluation = self._evaluator.evaluate(evidence, new_state, basis)
 
         # Update the evidence with the new state (frozen → replace)
-        updated_evidence = replace(
-            evidence, evaluation_state=new_state
-        )
+        updated_evidence = replace(evidence, evaluation_state=new_state)
         self._store.update_evidence(updated_evidence)
         self._store.add_evaluation(evaluation)
 
@@ -168,15 +164,11 @@ class EvidenceService:
         """Retrieve all stored evidence."""
         return self._store.get_all_evidence()
 
-    def get_relations_for(
-        self, evidence_id: str
-    ) -> list[EvidenceRelation]:
+    def get_relations_for(self, evidence_id: str) -> list[EvidenceRelation]:
         """Get all relations for an evidence item."""
         return self._store.get_relations_for(evidence_id)
 
-    def get_evaluation_history(
-        self, evidence_id: str
-    ) -> list[EvidenceEvaluation]:
+    def get_evaluation_history(self, evidence_id: str) -> list[EvidenceEvaluation]:
         """Get evaluation history for an evidence item."""
         return self._store.get_evaluation_history(evidence_id)
 

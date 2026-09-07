@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 
 from core.contracts.work import WorkActivity, WorkActivityType
 from interfaces.interaction.activity_mapping import work_activity_to_interaction_activity

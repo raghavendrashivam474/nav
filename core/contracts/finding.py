@@ -1,4 +1,4 @@
-﻿"""
+"""
 NAV v2 — S25: Finding Contracts.
 
 Defines the synthesis output boundary. A Finding represents a structured
@@ -70,9 +70,7 @@ class Finding:
     contradicting_evidence: tuple[str, ...]
     uncertainty: str
     evidence_basis: tuple[str, ...]
-    derived_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    derived_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     synthesis_basis: str = ""
 
     def __post_init__(self) -> None:

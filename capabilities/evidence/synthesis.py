@@ -1,4 +1,4 @@
-﻿"""
+"""
 NAV v2 — S25: Evidence Synthesis Engine.
 
 Deterministic synthesis of S24 Evidence items into structured Findings.
@@ -28,9 +28,7 @@ _SUPPORTING_RELATIONS: frozenset[RelationType] = frozenset(
 )
 
 # Relation types that indicate disagreement.
-_CONTRADICTING_RELATIONS: frozenset[RelationType] = frozenset(
-    {RelationType.CONTRADICTS}
-)
+_CONTRADICTING_RELATIONS: frozenset[RelationType] = frozenset({RelationType.CONTRADICTS})
 
 
 class EvidenceSynthesizer:
@@ -104,19 +102,13 @@ class EvidenceSynthesizer:
         internal_relations = self._collect_internal_relations(unique_ids)
 
         # Classify evidence based on relations
-        supporting_ids, contradicting_ids = self._classify_evidence(
-            internal_relations
-        )
+        supporting_ids, contradicting_ids = self._classify_evidence(internal_relations)
 
         # Determine finding status
-        status = self._determine_status(
-            supporting_ids, contradicting_ids
-        )
+        status = self._determine_status(supporting_ids, contradicting_ids)
 
         # Build uncertainty description
-        uncertainty = self._build_uncertainty(
-            status, supporting_ids, contradicting_ids
-        )
+        uncertainty = self._build_uncertainty(status, supporting_ids, contradicting_ids)
 
         # Build synthesis basis explanation
         synthesis_basis = self._build_synthesis_basis(
@@ -137,9 +129,7 @@ class EvidenceSynthesizer:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _collect_internal_relations(
-        self, evidence_ids: list[str]
-    ) -> list[EvidenceRelation]:
+    def _collect_internal_relations(self, evidence_ids: list[str]) -> list[EvidenceRelation]:
         """Collect all relations where both endpoints are in the evidence set."""
         id_set = set(evidence_ids)
         seen: set[str] = set()
@@ -237,15 +227,9 @@ class EvidenceSynthesizer:
         contradicting_ids: set[str],
     ) -> str:
         """Build a deterministic explanation of the derivation."""
-        support_rels = sum(
-            1 for r in relations if r.relation_type in _SUPPORTING_RELATIONS
-        )
-        contradict_rels = sum(
-            1 for r in relations if r.relation_type in _CONTRADICTING_RELATIONS
-        )
-        derived_rels = sum(
-            1 for r in relations if r.relation_type == RelationType.DERIVED_FROM
-        )
+        support_rels = sum(1 for r in relations if r.relation_type in _SUPPORTING_RELATIONS)
+        contradict_rels = sum(1 for r in relations if r.relation_type in _CONTRADICTING_RELATIONS)
+        derived_rels = sum(1 for r in relations if r.relation_type == RelationType.DERIVED_FROM)
 
         return (
             f"Synthesized from {len(evidence_ids)} evidence items. "

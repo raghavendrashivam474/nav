@@ -1,4 +1,4 @@
-﻿"""S20: Identity & Security Plane.
+"""S20: Identity & Security Plane.
 
 Provides deterministic, policy-driven authorization independent of
 the AI model, frontend, and individual capability implementations.

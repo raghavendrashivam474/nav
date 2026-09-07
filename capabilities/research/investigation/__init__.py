@@ -1,4 +1,4 @@
-﻿"""Investigation sub-package — S15 + S16.
+"""Investigation sub-package — S15 + S16.
 
 Persistent research investigations that accumulate findings,
 evidence, and hypotheses across multiple research interactions.

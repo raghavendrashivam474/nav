@@ -1,4 +1,4 @@
-﻿"""S21: Multi-device Foundation tests.
+"""S21: Multi-device Foundation tests.
 
 Verifies environment, device, and runtime identity contracts,
 the runtime registry, identity generation helpers, and

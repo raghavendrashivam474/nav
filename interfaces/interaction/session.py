@@ -1,4 +1,4 @@
-﻿"""Interaction Session — S19.
+"""Interaction Session — S19.
 
 Manages transient session focus and interface states like listening/thinking.
 Is pure memory, does not persist to database, completely isolated from WorkService.

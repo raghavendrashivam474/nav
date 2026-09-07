@@ -1,4 +1,4 @@
-﻿"""Investigation continuity service — S16.
+"""Investigation continuity service — S16.
 
 Provides investigation resolution (matching user intent to an
 existing investigation) and continuation reconstruction (building
@@ -66,15 +66,11 @@ class InvestigationContinuityService:
                 )
 
         # 2. Text search via repository
-        candidates = self._repo.find(
-            InvestigationQuery(query_text=query_text, limit=20)
-        )
+        candidates = self._repo.find(InvestigationQuery(query_text=query_text, limit=20))
 
         # Fallback: search by project if text search yielded nothing
         if not candidates and project_id:
-            candidates = self._repo.find(
-                InvestigationQuery(project_id=project_id, limit=20)
-            )
+            candidates = self._repo.find(InvestigationQuery(project_id=project_id, limit=20))
 
         if not candidates:
             return ResolutionResult(
@@ -146,8 +142,7 @@ class InvestigationContinuityService:
                 matches=tuple(scored[:3]),
                 confidence="low",
                 ambiguity_note=(
-                    f"Multiple investigations match. "
-                    f"Top: '{scored[0].title}', '{scored[1].title}'."
+                    f"Multiple investigations match. Top: '{scored[0].title}', '{scored[1].title}'."
                 ),
             )
 
@@ -155,25 +150,17 @@ class InvestigationContinuityService:
         return ResolutionResult(
             matches=tuple(scored[:3]),
             confidence=confidence,
-            resolved_id=(
-                top.investigation_id
-                if confidence in ("high", "medium")
-                else None
-            ),
+            resolved_id=(top.investigation_id if confidence in ("high", "medium") else None),
         )
 
     # ------------------------------------------------------------------
     # Continuation reconstruction
     # ------------------------------------------------------------------
 
-    def build_continuation(
-        self, investigation: Investigation
-    ) -> InvestigationContinuation:
+    def build_continuation(self, investigation: Investigation) -> InvestigationContinuation:
         """Deterministic snapshot from an Investigation. No LLM."""
         established = tuple(
-            f.statement
-            for f in investigation.findings
-            if f.support.value == "supported"
+            f.statement for f in investigation.findings if f.support.value == "supported"
         )
 
         active_hyps = tuple(
@@ -189,23 +176,16 @@ class InvestigationContinuityService:
         recent = "No recorded activity."
         if investigation.activity_log:
             latest = investigation.activity_log[-1]
-            recent = (
-                f"{latest.activity_type.value}: "
-                f"{latest.description} ({latest.timestamp})"
-            )
+            recent = f"{latest.activity_type.value}: {latest.description} ({latest.timestamp})"
 
         # Suggested directions
         suggestions: list[str] = []
         if investigation.open_questions:
             suggestions.append(f"Investigate: {investigation.open_questions[0]}")
         if investigation.uncertainties:
-            suggestions.append(
-                f"Resolve uncertainty: {investigation.uncertainties[0].statement}"
-            )
+            suggestions.append(f"Resolve uncertainty: {investigation.uncertainties[0].statement}")
         if investigation.conflicts:
-            suggestions.append(
-                f"Resolve conflict: {investigation.conflicts[0].statement}"
-            )
+            suggestions.append(f"Resolve conflict: {investigation.conflicts[0].statement}")
         if not suggestions:
             suggestions.append("Investigation appears complete or needs new direction.")
 

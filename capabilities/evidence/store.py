@@ -1,4 +1,4 @@
-﻿"""
+"""
 NAV v2 — S24: Evidence Store.
 
 In-memory storage for evidence, relations, and evaluation history.
@@ -36,9 +36,7 @@ class EvidenceStore:
     def add_evidence(self, evidence: Evidence) -> None:
         """Store an evidence item."""
         if evidence.evidence_id in self._evidence:
-            raise ValueError(
-                f"Evidence already exists: {evidence.evidence_id}"
-            )
+            raise ValueError(f"Evidence already exists: {evidence.evidence_id}")
         self._evidence[evidence.evidence_id] = evidence
 
     def get_evidence(self, evidence_id: str) -> Evidence | None:
@@ -57,9 +55,7 @@ class EvidenceStore:
         the same ID.
         """
         if evidence.evidence_id not in self._evidence:
-            raise ValueError(
-                f"Cannot update unknown evidence: {evidence.evidence_id}"
-            )
+            raise ValueError(f"Cannot update unknown evidence: {evidence.evidence_id}")
         self._evidence[evidence.evidence_id] = evidence
 
     @property
@@ -74,24 +70,17 @@ class EvidenceStore:
         """Store a relation between two evidence items."""
         # Validate both evidence items exist
         if relation.source_evidence_id not in self._evidence:
-            raise ValueError(
-                f"Source evidence not found: {relation.source_evidence_id}"
-            )
+            raise ValueError(f"Source evidence not found: {relation.source_evidence_id}")
         if relation.target_evidence_id not in self._evidence:
-            raise ValueError(
-                f"Target evidence not found: {relation.target_evidence_id}"
-            )
+            raise ValueError(f"Target evidence not found: {relation.target_evidence_id}")
         self._relations.append(relation)
 
-    def get_relations_for(
-        self, evidence_id: str
-    ) -> list[EvidenceRelation]:
+    def get_relations_for(self, evidence_id: str) -> list[EvidenceRelation]:
         """Get all relations involving a specific evidence item."""
         return [
             r
             for r in self._relations
-            if r.source_evidence_id == evidence_id
-            or r.target_evidence_id == evidence_id
+            if r.source_evidence_id == evidence_id or r.target_evidence_id == evidence_id
         ]
 
     @property
@@ -106,15 +95,9 @@ class EvidenceStore:
         """Record an evaluation state transition."""
         self._evaluations.append(evaluation)
 
-    def get_evaluation_history(
-        self, evidence_id: str
-    ) -> list[EvidenceEvaluation]:
+    def get_evaluation_history(self, evidence_id: str) -> list[EvidenceEvaluation]:
         """Get the evaluation history for an evidence item."""
-        return [
-            e
-            for e in self._evaluations
-            if e.evidence_id == evidence_id
-        ]
+        return [e for e in self._evaluations if e.evidence_id == evidence_id]
 
     # ------------------------------------------------------------------
     # Traceability

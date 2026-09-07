@@ -1,4 +1,4 @@
-﻿"""Comprehensive test suite for S16 — Investigation Continuity."""
+"""Comprehensive test suite for S16 — Investigation Continuity."""
 
 from __future__ import annotations
 
@@ -106,44 +106,30 @@ class TestActivityLogging:
         inv = svc.create_investigation(title="T", objective="O")
         inv = svc.add_hypothesis(inv.investigation_id, "X causes Y")
 
-        assert any(
-            a.activity_type == ActivityType.HYPOTHESIS_ADDED
-            for a in inv.activity_log
-        )
+        assert any(a.activity_type == ActivityType.HYPOTHESIS_ADDED for a in inv.activity_log)
 
     def test_update_hypothesis_records_activity(self, tmp_path: Path):
         svc = _make_service(tmp_path)
         inv = svc.create_investigation(title="T", objective="O")
         inv = svc.add_hypothesis(inv.investigation_id, "X causes Y")
         hyp_id = inv.hypotheses[0].hypothesis_id
-        inv = svc.update_hypothesis(
-            inv.investigation_id, hyp_id, status=HypothesisStatus.SUPPORTED
-        )
+        inv = svc.update_hypothesis(inv.investigation_id, hyp_id, status=HypothesisStatus.SUPPORTED)
 
-        assert any(
-            a.activity_type == ActivityType.HYPOTHESIS_UPDATED
-            for a in inv.activity_log
-        )
+        assert any(a.activity_type == ActivityType.HYPOTHESIS_UPDATED for a in inv.activity_log)
 
     def test_add_finding_records_activity(self, tmp_path: Path):
         svc = _make_service(tmp_path)
         inv = svc.create_investigation(title="T", objective="O")
         inv = svc.add_finding(inv.investigation_id, "Key finding")
 
-        assert any(
-            a.activity_type == ActivityType.FINDING_ADDED
-            for a in inv.activity_log
-        )
+        assert any(a.activity_type == ActivityType.FINDING_ADDED for a in inv.activity_log)
 
     def test_add_open_question_records_activity(self, tmp_path: Path):
         svc = _make_service(tmp_path)
         inv = svc.create_investigation(title="T", objective="O")
         inv = svc.add_open_question(inv.investigation_id, "What about Z?")
 
-        assert any(
-            a.activity_type == ActivityType.QUESTION_ADDED
-            for a in inv.activity_log
-        )
+        assert any(a.activity_type == ActivityType.QUESTION_ADDED for a in inv.activity_log)
 
     def test_resolve_question_records_activity(self, tmp_path: Path):
         svc = _make_service(tmp_path)
@@ -151,20 +137,14 @@ class TestActivityLogging:
         inv = svc.add_open_question(inv.investigation_id, "Q?")
         inv = svc.resolve_open_question(inv.investigation_id, "Q?")
 
-        assert any(
-            a.activity_type == ActivityType.QUESTION_RESOLVED
-            for a in inv.activity_log
-        )
+        assert any(a.activity_type == ActivityType.QUESTION_RESOLVED for a in inv.activity_log)
 
     def test_set_status_records_activity(self, tmp_path: Path):
         svc = _make_service(tmp_path)
         inv = svc.create_investigation(title="T", objective="O")
         inv = svc.set_status(inv.investigation_id, "active")
 
-        assert any(
-            a.activity_type == ActivityType.STATUS_CHANGED
-            for a in inv.activity_log
-        )
+        assert any(a.activity_type == ActivityType.STATUS_CHANGED for a in inv.activity_log)
 
     def test_activity_log_survives_persistence(self, tmp_path: Path):
         svc = _make_service(tmp_path)
@@ -232,9 +212,7 @@ class TestInvestigationResolution:
         )
         cs = InvestigationContinuityService(repository=svc._repo)
 
-        result = cs.resolve_investigation(
-            "unrelated query", project_id="proj_x"
-        )
+        result = cs.resolve_investigation("unrelated query", project_id="proj_x")
         assert len(result.matches) >= 1
 
     def test_empty_database(self, tmp_path: Path):
@@ -252,9 +230,7 @@ class TestContinuationSnapshot:
     def test_basic_continuation(self, tmp_path: Path):
         svc = _make_service(tmp_path)
         inv = svc.create_investigation(title="T", objective="Learn X")
-        inv = svc.add_finding(
-            inv.investigation_id, "X is viable", support=SupportState.SUPPORTED
-        )
+        inv = svc.add_finding(inv.investigation_id, "X is viable", support=SupportState.SUPPORTED)
         inv = svc.add_open_question(inv.investigation_id, "What about cost?")
         cs = InvestigationContinuityService(repository=svc._repo)
 
@@ -337,9 +313,7 @@ class TestResume:
     def test_resume_success(self, tmp_path: Path):
         svc = _make_service(tmp_path)
         inv = svc.create_investigation(title="Local AI", objective="Viability")
-        inv = svc.add_finding(
-            inv.investigation_id, "GPU needed", support=SupportState.SUPPORTED
-        )
+        inv = svc.add_finding(inv.investigation_id, "GPU needed", support=SupportState.SUPPORTED)
         cs = InvestigationContinuityService(repository=svc._repo)
 
         resolution, cont = cs.resume("Local AI")

@@ -1,4 +1,4 @@
-﻿"""Whisper speech-to-text implementation — S4 voice boundary.
+"""Whisper speech-to-text implementation — S4 voice boundary.
 
 Uses faster-whisper for local, fast CPU/GPU inference.
 Forces language="en" by default to prevent multilingual mis-detections.

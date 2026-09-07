@@ -1,4 +1,4 @@
-﻿"""Runtime registry — S21.
+"""Runtime registry — S21.
 
 In-memory registry of active runtimes within a NAV environment.
 Tracks which runtimes are currently associated with the environment.
@@ -53,11 +53,7 @@ class RuntimeRegistry:
 
     def active_runtimes(self) -> tuple[RuntimeDescriptor, ...]:
         """Return all runtimes with ACTIVE status."""
-        return tuple(
-            d
-            for d in self._runtimes.values()
-            if d.runtime.status == RuntimeStatus.ACTIVE
-        )
+        return tuple(d for d in self._runtimes.values() if d.runtime.status == RuntimeStatus.ACTIVE)
 
     @property
     def count(self) -> int:

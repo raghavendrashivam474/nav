@@ -1,4 +1,4 @@
-﻿"""Interaction Interface package boundary — S19.
+"""Interaction Interface package boundary — S19.
 
 Exports core contracts and interaction implementation APIs.
 """

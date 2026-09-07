@@ -1,4 +1,4 @@
-﻿"""Investigation models — S15 + S16.
+"""Investigation models — S15 + S16.
 
 Persistent, first-class investigation entities that accumulate
 findings, evidence, sources, hypotheses, and open questions

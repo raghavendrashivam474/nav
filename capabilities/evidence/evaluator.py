@@ -1,4 +1,4 @@
-﻿"""
+"""
 NAV v2 — S24: Evidence Evaluator.
 
 Assigns qualitative evaluation states to evidence items.
@@ -26,36 +26,46 @@ class EvidenceEvaluator:
 
     # Valid transitions: from_state → set of allowed to_states
     _VALID_TRANSITIONS: dict[EvaluationState, frozenset[EvaluationState]] = {
-        EvaluationState.UNASSESSED: frozenset({
-            EvaluationState.SUPPORTED,
-            EvaluationState.CONTRADICTED,
-            EvaluationState.CONFLICTED,
-            EvaluationState.UNCERTAIN,
-        }),
-        EvaluationState.SUPPORTED: frozenset({
-            EvaluationState.CONTRADICTED,
-            EvaluationState.CONFLICTED,
-            EvaluationState.UNCERTAIN,
-            EvaluationState.UNASSESSED,
-        }),
-        EvaluationState.CONTRADICTED: frozenset({
-            EvaluationState.SUPPORTED,
-            EvaluationState.CONFLICTED,
-            EvaluationState.UNCERTAIN,
-            EvaluationState.UNASSESSED,
-        }),
-        EvaluationState.CONFLICTED: frozenset({
-            EvaluationState.SUPPORTED,
-            EvaluationState.CONTRADICTED,
-            EvaluationState.UNCERTAIN,
-            EvaluationState.UNASSESSED,
-        }),
-        EvaluationState.UNCERTAIN: frozenset({
-            EvaluationState.SUPPORTED,
-            EvaluationState.CONTRADICTED,
-            EvaluationState.CONFLICTED,
-            EvaluationState.UNASSESSED,
-        }),
+        EvaluationState.UNASSESSED: frozenset(
+            {
+                EvaluationState.SUPPORTED,
+                EvaluationState.CONTRADICTED,
+                EvaluationState.CONFLICTED,
+                EvaluationState.UNCERTAIN,
+            }
+        ),
+        EvaluationState.SUPPORTED: frozenset(
+            {
+                EvaluationState.CONTRADICTED,
+                EvaluationState.CONFLICTED,
+                EvaluationState.UNCERTAIN,
+                EvaluationState.UNASSESSED,
+            }
+        ),
+        EvaluationState.CONTRADICTED: frozenset(
+            {
+                EvaluationState.SUPPORTED,
+                EvaluationState.CONFLICTED,
+                EvaluationState.UNCERTAIN,
+                EvaluationState.UNASSESSED,
+            }
+        ),
+        EvaluationState.CONFLICTED: frozenset(
+            {
+                EvaluationState.SUPPORTED,
+                EvaluationState.CONTRADICTED,
+                EvaluationState.UNCERTAIN,
+                EvaluationState.UNASSESSED,
+            }
+        ),
+        EvaluationState.UNCERTAIN: frozenset(
+            {
+                EvaluationState.SUPPORTED,
+                EvaluationState.CONTRADICTED,
+                EvaluationState.CONFLICTED,
+                EvaluationState.UNASSESSED,
+            }
+        ),
     }
 
     def evaluate(
@@ -80,13 +90,10 @@ class EvidenceEvaluator:
         """
         if new_state == evidence.evaluation_state:
             raise ValueError(
-                f"Cannot transition from {evidence.evaluation_state.value} "
-                f"to the same state."
+                f"Cannot transition from {evidence.evaluation_state.value} to the same state."
             )
 
-        allowed = self._VALID_TRANSITIONS.get(
-            evidence.evaluation_state, frozenset()
-        )
+        allowed = self._VALID_TRANSITIONS.get(evidence.evaluation_state, frozenset())
         if new_state not in allowed:
             raise ValueError(
                 f"Invalid evaluation transition: "

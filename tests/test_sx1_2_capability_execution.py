@@ -1,4 +1,4 @@
-﻿"""Sx1.2: Capability & Execution Boundary Hardening — Full 14-Class Adversarial Suite.
+"""Sx1.2: Capability & Execution Boundary Hardening — Full 14-Class Adversarial Suite.
 
 Exhaustively covers ATK-01 through ATK-14:
 - ATK-01: Direct Capability Invocation
@@ -357,9 +357,7 @@ class TestSx12ExhaustiveAdversarialSuite:
     # -------------------------------------------------------------------------
     # ATK-11: Failure & Exception Containment
     # -------------------------------------------------------------------------
-    def test_atk_11_exception_fails_closed_without_privilege_escalation(
-        self, setup_env
-    ) -> None:
+    def test_atk_11_exception_fails_closed_without_privilege_escalation(self, setup_env) -> None:
         """ATK-11: Unhandled capability exceptions are contained safely."""
         work_svc, orch, sec_svc, reg, sensitive_cap, data_cap = setup_env
 
@@ -422,9 +420,7 @@ class TestSx12ExhaustiveAdversarialSuite:
     # -------------------------------------------------------------------------
     # ATK-13: SYSTEM Authority Containment
     # -------------------------------------------------------------------------
-    def test_atk_13_system_authority_does_not_leak_to_untrusted_payload(
-        self, setup_env
-    ) -> None:
+    def test_atk_13_system_authority_does_not_leak_to_untrusted_payload(self, setup_env) -> None:
         """ATK-13: Untrusted payload asserting SYSTEM is downgraded to USER."""
         work_svc, orch, sec_svc, reg, sensitive_cap, data_cap = setup_env
 
@@ -470,4 +466,3 @@ class TestSx12ExhaustiveAdversarialSuite:
             "trust_level": 0,
             "metadata": {},
         }
-

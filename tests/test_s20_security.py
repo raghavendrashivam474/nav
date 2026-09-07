@@ -1,4 +1,4 @@
-﻿"""S20: Identity & Security Plane — Comprehensive Tests.
+"""S20: Identity & Security Plane — Comprehensive Tests.
 
 Tests the security boundary independently of the AI model,
 frontend, and individual capability implementations.
@@ -37,9 +37,7 @@ def user_actor() -> ActorIdentity:
 
 @pytest.fixture()
 def agent_actor() -> ActorIdentity:
-    return ActorIdentity(
-        actor_id="agent:worker1", actor_type=ActorType.AGENT
-    )
+    return ActorIdentity(actor_id="agent:worker1", actor_type=ActorType.AGENT)
 
 
 @pytest.fixture()
@@ -121,29 +119,19 @@ class TestActorIdentity:
 
 
 class TestPolicyEngine:
-    def test_system_allowed_everything(
-        self, default_policy: PolicyEngine
-    ) -> None:
+    def test_system_allowed_everything(self, default_policy: PolicyEngine) -> None:
         req = AuthorizationRequest(
             actor=SYSTEM_ACTOR,
             action="work.cancel",
             resource="work_123",
         )
-        assert (
-            default_policy.evaluate(req).outcome
-            == AuthorizationOutcome.ALLOW
-        )
+        assert default_policy.evaluate(req).outcome == AuthorizationOutcome.ALLOW
 
     def test_user_allowed_general(
         self, default_policy: PolicyEngine, user_actor: ActorIdentity
     ) -> None:
-        req = AuthorizationRequest(
-            actor=user_actor, action="work.create"
-        )
-        assert (
-            default_policy.evaluate(req).outcome
-            == AuthorizationOutcome.ALLOW
-        )
+        req = AuthorizationRequest(actor=user_actor, action="work.create")
+        assert default_policy.evaluate(req).outcome == AuthorizationOutcome.ALLOW
 
     def test_user_cancel_requires_approval(
         self, default_policy: PolicyEngine, user_actor: ActorIdentity
@@ -153,77 +141,43 @@ class TestPolicyEngine:
             action="work.cancel",
             resource="work_123",
         )
-        assert (
-            default_policy.evaluate(req).outcome
-            == AuthorizationOutcome.REQUIRE_APPROVAL
-        )
+        assert default_policy.evaluate(req).outcome == AuthorizationOutcome.REQUIRE_APPROVAL
 
     def test_user_redirect_requires_approval(
         self, default_policy: PolicyEngine, user_actor: ActorIdentity
     ) -> None:
-        req = AuthorizationRequest(
-            actor=user_actor, action="work.redirect"
-        )
-        assert (
-            default_policy.evaluate(req).outcome
-            == AuthorizationOutcome.REQUIRE_APPROVAL
-        )
+        req = AuthorizationRequest(actor=user_actor, action="work.redirect")
+        assert default_policy.evaluate(req).outcome == AuthorizationOutcome.REQUIRE_APPROVAL
 
     def test_user_takeover_requires_approval(
         self, default_policy: PolicyEngine, user_actor: ActorIdentity
     ) -> None:
-        req = AuthorizationRequest(
-            actor=user_actor, action="work.take_over"
-        )
-        assert (
-            default_policy.evaluate(req).outcome
-            == AuthorizationOutcome.REQUIRE_APPROVAL
-        )
+        req = AuthorizationRequest(actor=user_actor, action="work.take_over")
+        assert default_policy.evaluate(req).outcome == AuthorizationOutcome.REQUIRE_APPROVAL
 
     def test_user_delete_requires_approval(
         self, default_policy: PolicyEngine, user_actor: ActorIdentity
     ) -> None:
-        req = AuthorizationRequest(
-            actor=user_actor, action="work.delete"
-        )
-        assert (
-            default_policy.evaluate(req).outcome
-            == AuthorizationOutcome.REQUIRE_APPROVAL
-        )
+        req = AuthorizationRequest(actor=user_actor, action="work.delete")
+        assert default_policy.evaluate(req).outcome == AuthorizationOutcome.REQUIRE_APPROVAL
 
     def test_agent_cannot_takeover(
         self, default_policy: PolicyEngine, agent_actor: ActorIdentity
     ) -> None:
-        req = AuthorizationRequest(
-            actor=agent_actor, action="work.take_over"
-        )
-        assert (
-            default_policy.evaluate(req).outcome
-            == AuthorizationOutcome.DENY
-        )
+        req = AuthorizationRequest(actor=agent_actor, action="work.take_over")
+        assert default_policy.evaluate(req).outcome == AuthorizationOutcome.DENY
 
     def test_agent_cancel_requires_approval(
         self, default_policy: PolicyEngine, agent_actor: ActorIdentity
     ) -> None:
-        req = AuthorizationRequest(
-            actor=agent_actor, action="work.cancel"
-        )
-        assert (
-            default_policy.evaluate(req).outcome
-            == AuthorizationOutcome.REQUIRE_APPROVAL
-        )
+        req = AuthorizationRequest(actor=agent_actor, action="work.cancel")
+        assert default_policy.evaluate(req).outcome == AuthorizationOutcome.REQUIRE_APPROVAL
 
     def test_unknown_action_default_deny(self) -> None:
-        policy = PolicyEngine(
-            rules=[], default_outcome=AuthorizationOutcome.DENY
-        )
-        actor = ActorIdentity(
-            actor_id="u:t", actor_type=ActorType.USER
-        )
+        policy = PolicyEngine(rules=[], default_outcome=AuthorizationOutcome.DENY)
+        actor = ActorIdentity(actor_id="u:t", actor_type=ActorType.USER)
         req = AuthorizationRequest(actor=actor, action="x.y")
-        assert (
-            policy.evaluate(req).outcome == AuthorizationOutcome.DENY
-        )
+        assert policy.evaluate(req).outcome == AuthorizationOutcome.DENY
 
     def test_custom_rule(self) -> None:
         policy = PolicyEngine(
@@ -237,13 +191,9 @@ class TestPolicyEngine:
                 )
             ]
         )
-        actor = ActorIdentity(
-            actor_id="u:t", actor_type=ActorType.USER
-        )
+        actor = ActorIdentity(actor_id="u:t", actor_type=ActorType.USER)
         req = AuthorizationRequest(actor=actor, action="memory.write")
-        assert (
-            policy.evaluate(req).outcome == AuthorizationOutcome.DENY
-        )
+        assert policy.evaluate(req).outcome == AuthorizationOutcome.DENY
 
     def test_decision_contains_context(
         self, default_policy: PolicyEngine, user_actor: ActorIdentity
@@ -260,13 +210,9 @@ class TestPolicyEngine:
 
     def test_add_rule_dynamically(self) -> None:
         policy = PolicyEngine()
-        actor = ActorIdentity(
-            actor_id="u:t", actor_type=ActorType.USER
-        )
+        actor = ActorIdentity(actor_id="u:t", actor_type=ActorType.USER)
         req = AuthorizationRequest(actor=actor, action="custom.act")
-        assert (
-            policy.evaluate(req).outcome == AuthorizationOutcome.DENY
-        )
+        assert policy.evaluate(req).outcome == AuthorizationOutcome.DENY
         policy.add_rule(
             PolicyRule(
                 actor_type=ActorType.USER,
@@ -275,9 +221,7 @@ class TestPolicyEngine:
                 priority=10,
             )
         )
-        assert (
-            policy.evaluate(req).outcome == AuthorizationOutcome.ALLOW
-        )
+        assert policy.evaluate(req).outcome == AuthorizationOutcome.ALLOW
 
 
 # =========================================================================
@@ -286,19 +230,13 @@ class TestPolicyEngine:
 
 
 class TestSecurityService:
-    def test_authorize_allow(
-        self, security_service: SecurityService
-    ) -> None:
-        d = security_service.authorize(
-            actor=SYSTEM_ACTOR, action="work.create"
-        )
+    def test_authorize_allow(self, security_service: SecurityService) -> None:
+        d = security_service.authorize(actor=SYSTEM_ACTOR, action="work.create")
         assert d.outcome == AuthorizationOutcome.ALLOW
 
     def test_authorize_deny(self) -> None:
         svc = SecurityService(policy_engine=PolicyEngine(rules=[]))
-        actor = ActorIdentity(
-            actor_id="u:t", actor_type=ActorType.USER
-        )
+        actor = ActorIdentity(actor_id="u:t", actor_type=ActorType.USER)
         d = svc.authorize(actor=actor, action="work.create")
         assert d.outcome == AuthorizationOutcome.DENY
 
@@ -314,9 +252,7 @@ class TestSecurityService:
         )
         assert d.outcome == AuthorizationOutcome.REQUIRE_APPROVAL
 
-    def test_authorize_default_system_actor(
-        self, security_service: SecurityService
-    ) -> None:
+    def test_authorize_default_system_actor(self, security_service: SecurityService) -> None:
         d = security_service.authorize(action="work.cancel")
         assert d.outcome == AuthorizationOutcome.ALLOW
         assert d.actor_id == "nav:system"
@@ -326,9 +262,7 @@ class TestSecurityService:
         security_service: SecurityService,
         user_actor: ActorIdentity,
     ) -> None:
-        security_service.authorize(
-            actor=user_actor, action="work.create"
-        )
+        security_service.authorize(actor=user_actor, action="work.create")
         assert security_service.event_log.count >= 2
 
     def test_authorize_request_object(
@@ -365,15 +299,11 @@ class TestSecurityEventLog:
             ),
         )
 
-    def test_record_and_retrieve(
-        self, event_log: SecurityEventLog
-    ) -> None:
+    def test_record_and_retrieve(self, event_log: SecurityEventLog) -> None:
         event_log.record(self._make_event())
         assert event_log.count == 1
 
-    def test_filter_by_type(
-        self, event_log: SecurityEventLog
-    ) -> None:
+    def test_filter_by_type(self, event_log: SecurityEventLog) -> None:
         for i in range(5):
             et = (
                 SecurityEventType.AUTHORIZATION_GRANTED
@@ -381,22 +311,8 @@ class TestSecurityEventLog:
                 else SecurityEventType.AUTHORIZATION_DENIED
             )
             event_log.record(self._make_event(et))
-        assert (
-            len(
-                event_log.get_events(
-                    event_type="authorization_granted"
-                )
-            )
-            == 3
-        )
-        assert (
-            len(
-                event_log.get_events(
-                    event_type="authorization_denied"
-                )
-            )
-            == 2
-        )
+        assert len(event_log.get_events(event_type="authorization_granted")) == 3
+        assert len(event_log.get_events(event_type="authorization_denied")) == 2
 
     def test_max_events(self) -> None:
         log = SecurityEventLog(max_events=5)
@@ -420,9 +336,7 @@ class TestOrchestratorSecurity:
         reg = CapabilityRegistry()
         reg.register(_EchoCapability())
         orch = Orchestrator(reg)
-        resp = orch.route_request(
-            "echo", Request(request_id="r1", payload={"action": "t"})
-        )
+        resp = orch.route_request("echo", Request(request_id="r1", payload={"action": "t"}))
         assert resp.success is True
         assert resp.data["invoked"] is True
 
@@ -448,9 +362,7 @@ class TestOrchestratorSecurity:
     def test_security_deny(self) -> None:
         reg = CapabilityRegistry()
         reg.register(_EchoCapability())
-        svc = SecurityService(
-            policy_engine=PolicyEngine(rules=[])
-        )
+        svc = SecurityService(policy_engine=PolicyEngine(rules=[]))
         orch = Orchestrator(reg, security_service=svc)
         resp = orch.route_request(
             "echo",
@@ -472,9 +384,7 @@ class TestOrchestratorSecurity:
         reg = CapabilityRegistry()
         reg.register(_EchoCapability())
         orch = Orchestrator(reg, security_service=SecurityService())
-        resp = orch.route_request(
-            "echo", Request(request_id="r1", payload={"action": "t"})
-        )
+        resp = orch.route_request("echo", Request(request_id="r1", payload={"action": "t"}))
         assert resp.success is True
 
     def test_require_approval_enriches_payload(self) -> None:
@@ -539,12 +449,8 @@ class TestS18ApprovalIntegration:
             ]
         )
         svc = SecurityService(policy_engine=policy)
-        agent = ActorIdentity(
-            actor_id="agent:bot", actor_type=ActorType.AGENT
-        )
-        d = svc.authorize(
-            actor=agent, action="work.take_over", resource="w1"
-        )
+        agent = ActorIdentity(actor_id="agent:bot", actor_type=ActorType.AGENT)
+        d = svc.authorize(actor=agent, action="work.take_over", resource="w1")
         assert d.outcome == AuthorizationOutcome.DENY
 
     def test_allow_does_not_skip_s18(self) -> None:
@@ -557,13 +463,9 @@ class TestS18ApprovalIntegration:
         assert d.outcome == AuthorizationOutcome.ALLOW
         # S18 step-level approval is independent
 
-    def test_require_approval_separate_from_s18(
-        self, user_actor: ActorIdentity
-    ) -> None:
+    def test_require_approval_separate_from_s18(self, user_actor: ActorIdentity) -> None:
         svc = SecurityService()
-        d = svc.authorize(
-            actor=user_actor, action="work.cancel", resource="w1"
-        )
+        d = svc.authorize(actor=user_actor, action="work.cancel", resource="w1")
         assert d.outcome == AuthorizationOutcome.REQUIRE_APPROVAL
 
 
@@ -574,12 +476,8 @@ class TestS18ApprovalIntegration:
 
 class TestSecurityInvariants:
     def test_invariant_1_model_cannot_grant_authority(self) -> None:
-        svc = SecurityService(
-            policy_engine=PolicyEngine(rules=[])
-        )
-        fake = ActorIdentity(
-            actor_id="llm:self", actor_type=ActorType.AGENT
-        )
+        svc = SecurityService(policy_engine=PolicyEngine(rules=[]))
+        fake = ActorIdentity(actor_id="llm:self", actor_type=ActorType.AGENT)
         d = svc.authorize(actor=fake, action="work.cancel")
         assert d.outcome == AuthorizationOutcome.DENY
 
@@ -595,23 +493,17 @@ class TestSecurityInvariants:
             ]
         )
         svc = SecurityService(policy_engine=policy)
-        agent = ActorIdentity(
-            actor_id="agent:rogue", actor_type=ActorType.AGENT
-        )
+        agent = ActorIdentity(actor_id="agent:rogue", actor_type=ActorType.AGENT)
         d = svc.authorize(actor=agent, action="work.create")
         assert d.outcome == AuthorizationOutcome.DENY
 
-    def test_invariant_5_capabilities_dont_invent_auth(
-        self, user_actor: ActorIdentity
-    ) -> None:
+    def test_invariant_5_capabilities_dont_invent_auth(self, user_actor: ActorIdentity) -> None:
         svc = SecurityService()
         d = svc.authorize(actor=user_actor, action="work.pause")
         assert d.outcome == AuthorizationOutcome.ALLOW
         assert d.policy_ref != ""
 
-    def test_invariant_7_deterministic(
-        self, user_actor: ActorIdentity
-    ) -> None:
+    def test_invariant_7_deterministic(self, user_actor: ActorIdentity) -> None:
         svc = SecurityService()
         outcomes = {
             svc.authorize(
@@ -632,9 +524,7 @@ class TestSecurityInvariants:
 
 class TestBackwardCompatibility:
     def test_request_without_actor(self) -> None:
-        req = Request(
-            request_id="r1", payload={"action": "create"}
-        )
+        req = Request(request_id="r1", payload={"action": "create"})
         assert req.request_id == "r1"
 
     def test_orchestrator_constructor_compat(self) -> None:
@@ -647,6 +537,3 @@ class TestBackwardCompatibility:
         d = svc.authorize(action="work.cancel", resource="w1")
         assert d.outcome == AuthorizationOutcome.ALLOW
         assert d.actor_id == "nav:system"
-
-
-

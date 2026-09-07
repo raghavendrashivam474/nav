@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 
 from interfaces.interaction.commands import CommandInterpreter
 from interfaces.interaction.contracts import UserAction

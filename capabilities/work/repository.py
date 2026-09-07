@@ -1,4 +1,4 @@
-﻿"""Abstract storage boundary for Work persistence — S17.
+"""Abstract storage boundary for Work persistence — S17.
 
 Follows the same pattern as capabilities/research/investigation/repository.py
 and capabilities/memory/repository.py.

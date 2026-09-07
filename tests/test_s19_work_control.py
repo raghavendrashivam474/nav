@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 
 from capabilities.work.capability import WorkCapability
 from capabilities.work.service import WorkService

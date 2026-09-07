@@ -1,4 +1,4 @@
-﻿import unittest
+import unittest
 
 from capabilities.cognition.cognition import CognitionCapability
 from capabilities.work.capability import WorkCapability

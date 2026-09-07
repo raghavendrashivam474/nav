@@ -1,4 +1,4 @@
-﻿"""Step evaluation subsystem — S17.
+"""Step evaluation subsystem — S17.
 
 DeterministicEvaluator inspects capability invocation results and
 determines the appropriate next step status.

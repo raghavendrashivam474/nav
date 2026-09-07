@@ -1,4 +1,4 @@
-﻿"""Activity mapping — S19.
+"""Activity mapping — S19.
 
 Transforms structured backend WorkActivity logs into clean user-facing lines.
 Adheres to spec §7: Drops internal/private reasoning, keeps 1-2 meaningful lines.

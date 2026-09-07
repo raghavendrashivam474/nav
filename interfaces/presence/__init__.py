@@ -1,4 +1,4 @@
-﻿"""Presence interfaces package boundary — S19.
+"""Presence interfaces package boundary — S19.
 
 Exports PresenceState, PresenceFrame, and visual render contracts.
 """

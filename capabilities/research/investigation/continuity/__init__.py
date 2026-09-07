@@ -1,4 +1,4 @@
-﻿"""Investigation continuity sub-package — S16.
+"""Investigation continuity sub-package — S16.
 
 Enables NAV to resolve and resume persistent investigations
 across sessions with deterministic state reconstruction.

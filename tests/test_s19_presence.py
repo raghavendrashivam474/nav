@@ -1,4 +1,4 @@
-﻿import io
+import io
 import unittest
 
 from interfaces.interaction.contracts import InteractionActivity, NAVInteractionState

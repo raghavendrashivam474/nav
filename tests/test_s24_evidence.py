@@ -1,4 +1,4 @@
-﻿"""
+"""
 NAV v2 — S24: Evidence Layer Tests.
 
 Covers:
@@ -274,58 +274,40 @@ class TestEvaluation:
         assert evaluation.basis == "Corroborated by independent source."
 
     def test_unassessed_to_contradicted(self) -> None:
-        evaluation = self.evaluator.evaluate(
-            self.evidence, EvaluationState.CONTRADICTED
-        )
+        evaluation = self.evaluator.evaluate(self.evidence, EvaluationState.CONTRADICTED)
         assert evaluation.new_state == EvaluationState.CONTRADICTED
 
     def test_unassessed_to_conflicted(self) -> None:
-        evaluation = self.evaluator.evaluate(
-            self.evidence, EvaluationState.CONFLICTED
-        )
+        evaluation = self.evaluator.evaluate(self.evidence, EvaluationState.CONFLICTED)
         assert evaluation.new_state == EvaluationState.CONFLICTED
 
     def test_unassessed_to_uncertain(self) -> None:
-        evaluation = self.evaluator.evaluate(
-            self.evidence, EvaluationState.UNCERTAIN
-        )
+        evaluation = self.evaluator.evaluate(self.evidence, EvaluationState.UNCERTAIN)
         assert evaluation.new_state == EvaluationState.UNCERTAIN
 
     def test_same_state_transition_rejected(self) -> None:
         with pytest.raises(ValueError, match="same state"):
-            self.evaluator.evaluate(
-                self.evidence, EvaluationState.UNASSESSED
-            )
+            self.evaluator.evaluate(self.evidence, EvaluationState.UNASSESSED)
 
     def test_supported_to_contradicted(self) -> None:
         from dataclasses import replace
 
-        supported = replace(
-            self.evidence, evaluation_state=EvaluationState.SUPPORTED
-        )
-        evaluation = self.evaluator.evaluate(
-            supported, EvaluationState.CONTRADICTED
-        )
+        supported = replace(self.evidence, evaluation_state=EvaluationState.SUPPORTED)
+        evaluation = self.evaluator.evaluate(supported, EvaluationState.CONTRADICTED)
         assert evaluation.previous_state == EvaluationState.SUPPORTED
         assert evaluation.new_state == EvaluationState.CONTRADICTED
 
     def test_evaluation_is_deterministic(self) -> None:
         """Same inputs → same outputs (modulo timestamps)."""
-        ev1 = self.evaluator.evaluate(
-            self.evidence, EvaluationState.SUPPORTED, basis="test"
-        )
-        ev2 = self.evaluator.evaluate(
-            self.evidence, EvaluationState.SUPPORTED, basis="test"
-        )
+        ev1 = self.evaluator.evaluate(self.evidence, EvaluationState.SUPPORTED, basis="test")
+        ev2 = self.evaluator.evaluate(self.evidence, EvaluationState.SUPPORTED, basis="test")
         assert ev1.evidence_id == ev2.evidence_id
         assert ev1.previous_state == ev2.previous_state
         assert ev1.new_state == ev2.new_state
         assert ev1.basis == ev2.basis
 
     def test_evaluation_record_is_frozen(self) -> None:
-        evaluation = self.evaluator.evaluate(
-            self.evidence, EvaluationState.SUPPORTED
-        )
+        evaluation = self.evaluator.evaluate(self.evidence, EvaluationState.SUPPORTED)
         with pytest.raises(AttributeError):
             evaluation.new_state = EvaluationState.CONTRADICTED  # type: ignore[misc]
 
@@ -384,9 +366,7 @@ class TestRelationships:
             )
 
     def test_relation_is_frozen(self) -> None:
-        relation = EvidenceRelationDetector.record_relation(
-            "ev-1", "ev-2", RelationType.SUPPORTS
-        )
+        relation = EvidenceRelationDetector.record_relation("ev-1", "ev-2", RelationType.SUPPORTS)
         with pytest.raises(AttributeError):
             relation.relation_type = RelationType.CONTRADICTS  # type: ignore[misc]
 

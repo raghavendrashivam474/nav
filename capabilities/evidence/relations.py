@@ -1,4 +1,4 @@
-﻿"""
+"""
 NAV v2 — S24: Evidence Relations.
 
 Records structural relationships between evidence items.

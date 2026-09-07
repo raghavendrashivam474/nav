@@ -23,7 +23,6 @@ data: dict[str, Any] = {
 **After:**
 
 ```Python
-
 data: dict[str, Any] = {
     "work_id": work.work_id,
     "objective": work.objective,

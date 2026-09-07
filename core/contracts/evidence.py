@@ -1,4 +1,4 @@
-﻿"""
+"""
 NAV v2 — S24: Evidence Contracts.
 
 Defines the evidence representation, evaluation, and traceability boundary.
@@ -94,14 +94,10 @@ class Evidence:
     source_metadata: SourceMetadata
     acquisition_provider_id: str
     acquisition_request_id: str | None = None
-    acquisition_completed_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    acquisition_completed_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     item_index: int = 0
     evaluation_state: EvaluationState = EvaluationState.UNASSESSED
-    created_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self) -> None:
         if not self.claim or not self.claim.strip():
@@ -154,15 +150,11 @@ class EvidenceRelation:
     target_evidence_id: str
     relation_type: RelationType
     basis: str | None = None
-    created_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self) -> None:
         if self.source_evidence_id == self.target_evidence_id:
-            raise ValueError(
-                "EvidenceRelation cannot relate an evidence item to itself."
-            )
+            raise ValueError("EvidenceRelation cannot relate an evidence item to itself.")
         if not self.source_evidence_id.strip():
             raise ValueError("source_evidence_id must not be empty.")
         if not self.target_evidence_id.strip():
@@ -191,9 +183,7 @@ class EvidenceEvaluation:
     previous_state: EvaluationState
     new_state: EvaluationState
     basis: str | None = None
-    evaluated_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    evaluated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self) -> None:
         if not self.evidence_id.strip():

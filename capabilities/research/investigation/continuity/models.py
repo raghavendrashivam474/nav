@@ -1,4 +1,4 @@
-﻿"""Investigation continuity models — S16.
+"""Investigation continuity models — S16.
 
 Defines the continuation snapshot and resolution models that
 enable NAV to resume investigations across sessions.
