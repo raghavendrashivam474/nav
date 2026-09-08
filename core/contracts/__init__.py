@@ -1,9 +1,9 @@
-"""Core contracts for NAV.
+﻿"""Core contracts for NAV.
 
 Exposes stable abstract base classes, dataclasses, protocols, and enums
 defining the boundaries between Core, Capabilities, AI infrastructure,
 Storage/Provider layers, Technical Intelligence/Work, Security,
-Environment, and Findings.
+Environment, Findings, and Comparison.
 """
 
 from core.contracts.ai import (
@@ -16,6 +16,15 @@ from core.contracts.capability import (
     Capability,
     Request,
     Response,
+)
+from core.contracts.comparison import (
+    ComparisonDimension,
+    ComparisonRelationship,
+    ComparisonResult,
+    ComparisonState,
+    ComparisonSubject,
+    DimensionEvaluation,
+    SubjectType,
 )
 from core.contracts.context import (
     Commitment,
@@ -123,6 +132,14 @@ __all__ = [
     # Finding (S25)
     "Finding",
     "FindingState",
+    # Comparison (S26)
+    "ComparisonDimension",
+    "ComparisonRelationship",
+    "ComparisonResult",
+    "ComparisonState",
+    "ComparisonSubject",
+    "DimensionEvaluation",
+    "SubjectType",
     # Memory
     "MemoryCapabilityInterface",
     "MemoryQuery",
