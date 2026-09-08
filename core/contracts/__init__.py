@@ -3,7 +3,7 @@
 Exposes stable abstract base classes, dataclasses, protocols, and enums
 defining the boundaries between Core, Capabilities, AI infrastructure,
 Storage/Provider layers, Technical Intelligence/Work, Security,
-Environment, Findings, and Comparison.
+Environment, Findings, Comparison, and Reasoning.
 """
 
 from core.contracts.ai import (
@@ -57,6 +57,14 @@ from core.contracts.memory import (
     MemoryCapabilityInterface,
     MemoryQuery,
     MemoryRecord,
+)
+from core.contracts.reasoning import (
+    InferenceType,
+    ReasoningInput,
+    ReasoningInputType,
+    ReasoningResult,
+    ReasoningState,
+    ReasoningStep,
 )
 from core.contracts.research import (
     ContinuationIntent,
@@ -140,6 +148,13 @@ __all__ = [
     "ComparisonSubject",
     "DimensionEvaluation",
     "SubjectType",
+    # Reasoning (S27)
+    "InferenceType",
+    "ReasoningInput",
+    "ReasoningInputType",
+    "ReasoningResult",
+    "ReasoningState",
+    "ReasoningStep",
     # Memory
     "MemoryCapabilityInterface",
     "MemoryQuery",
