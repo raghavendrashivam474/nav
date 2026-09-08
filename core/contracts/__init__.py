@@ -106,6 +106,14 @@ from core.contracts.work import (
     WorkStep,
 )
 
+from core.contracts.action import (
+    ActionOutcome,
+    ActionRequest,
+    ActionResult,
+    ActionState,
+    ActionType,
+    is_valid_transition,
+)
 __all__ = [
     # Capability & Invocation
     "Capability",
@@ -195,4 +203,11 @@ __all__ = [
     "PlannerProtocol",
     "StepEvaluatorProtocol",
     "WorkCapabilityInterface",
+    # Action (S29)
+    "ActionOutcome",
+    "ActionRequest",
+    "ActionResult",
+    "ActionState",
+    "ActionType",
+    "is_valid_transition",
 ]
